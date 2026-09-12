@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Upright — wrist ritual hand studies</title>
+<title>Upright — wrist ritual handprints</title>
 <style>
   :root{
     --floor:#171310;
@@ -23,14 +23,14 @@
     position:sticky;top:0;z-index:10;
     background:var(--floor);
     border-bottom:1px solid var(--line);
-    margin:0 -24px 28px;padding:16px 24px 14px;
+    margin:0 -24px 26px;padding:16px 24px 14px;
   }
-  .bar{display:flex;flex-wrap:wrap;gap:22px;align-items:center;max-width:1040px;margin:0 auto}
+  .bar{display:flex;flex-wrap:wrap;gap:20px;align-items:center;max-width:1040px;margin:0 auto}
   h1{font-size:15px;font-weight:650;letter-spacing:.02em;margin:0 8px 0 0}
   h1 small{display:block;font-weight:400;font-size:11px;color:var(--dim);letter-spacing:.04em}
   .ctl{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--dim)}
   .ctl b{color:var(--chalk);font-weight:550;font-variant-numeric:tabular-nums}
-  input[type=range]{width:132px;accent-color:var(--tape)}
+  input[type=range]{width:128px;accent-color:var(--tape)}
   input[type=checkbox]{accent-color:var(--tape);width:15px;height:15px}
   label{cursor:pointer;user-select:none}
   button{
@@ -42,37 +42,55 @@
   button[aria-pressed=true]{background:var(--tape);border-color:var(--tape);color:var(--floor);font-weight:600}
   .ctl.off{opacity:.34;pointer-events:none}
 
+  /* --- the legibility check ------------------------------------------- */
+  .sizes{max-width:1040px;margin:0 auto 30px;border:1px solid var(--line);
+         border-radius:14px;padding:16px 18px 18px}
+  .sizes h2{font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;
+            color:var(--dim);margin:0 0 2px}
+  .sizes p{font-size:12px;color:var(--dim);margin:0 0 14px;max-width:64ch}
+  .ruler{display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap}
+  .ruler figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .ruler figcaption{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .ruler canvas{display:block}
+  .s320{width:320px;height:320px}
+  .s160{width:160px;height:160px}
+  .s80 {width:80px; height:80px}
+
+  /* --- the six exercises ---------------------------------------------- */
   .grid{display:grid;gap:18px;max-width:1040px;margin:0 auto;
         grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-  .card{
-    border:1px solid var(--line);border-radius:14px;
-    padding:10px 10px 14px;display:flex;flex-direction:column;align-items:center;
-  }
+  .card{border:1px solid var(--line);border-radius:14px;
+        padding:10px 10px 14px;display:flex;flex-direction:column;align-items:center}
   .card canvas{display:block;width:300px;height:300px}
   .name{margin-top:6px;font-size:13px;letter-spacing:.01em}
 
   /* Static-frames mode: one exercise per row, three poses side by side. */
   .grid.frames{grid-template-columns:1fr;max-width:920px}
-  .grid.frames .card{padding:14px 10px 16px}
   .grid.frames .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   .grid.frames .frame{display:flex;flex-direction:column;align-items:center}
   .grid.frames .frame canvas{width:268px;height:268px}
   .grid.frames .frame span{font-size:10px;color:var(--dim);margin-top:2px;font-variant-numeric:tabular-nums}
 
-  /* Narrow windows: two columns of scaled-down cards rather than one tall
-     column you have to scroll to compare. The canvas bitmap is unchanged —
-     only its CSS box shrinks — so the drawing stays crisp. */
+  /* Narrow windows: two scaled columns beat one tall column you must scroll
+     to compare. The canvas bitmap is unchanged — only its CSS box shrinks. */
+  /* A sticky bar that wraps to three rows can eat most of a short window.
+     Below these thresholds it scrolls away with everything else. */
+  @media (max-width:800px), (max-height:760px){
+    header{position:static}
+  }
   @media (max-width:800px){
     .grid{gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
     .card canvas{width:100%;height:auto;aspect-ratio:1}
     .grid.frames .frame canvas{width:100%;height:auto;aspect-ratio:1}
     .grid.frames .row{flex-wrap:nowrap}
     .grid.frames .frame{flex:1 1 0;min-width:0}
+    .ruler{gap:14px}
+    .s320{width:190px;height:190px}
   }
 
   .notes{max-width:1040px;margin:56px auto 0;border-top:1px solid var(--line);padding-top:26px}
   .notes h2{font-size:13px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
-  .notes p.lede{color:var(--dim);font-size:12px;max-width:70ch;margin:0 0 22px}
+  .notes p.lede{color:var(--dim);font-size:12px;max-width:72ch;margin:0 0 22px}
   .notes pre{
     font:11.5px/1.62 ui-monospace,SFMono-Regular,Menlo,monospace;
     background:rgba(244,241,232,.035);border:1px solid var(--line);border-radius:10px;
@@ -85,17 +103,25 @@
 
 <header>
   <div class="bar">
-    <h1>Wrist ritual — hand studies<small>chalk on floor · parametric · portable to SwiftUI Canvas</small></h1>
+    <h1>Wrist ritual — chalk handprints<small>filled silhouettes · parametric · portable to SwiftUI Canvas</small></h1>
     <div class="ctl">
       <label for="speed">Speed</label>
       <input id="speed" type="range" min="0.5" max="2" step="0.05" value="1">
-      <b id="speedOut">1.00×</b>
+      <b id="speedOut">1.00x</b>
     </div>
     <div class="ctl"><label><input id="tape" type="checkbox" checked> Tape motion hints</label></div>
-    <div class="ctl" id="viewCtl"><label><input id="view" type="checkbox"> Alternate view (side &#8644; top-down)</label></div>
+    <div class="ctl"><label><input id="view" type="checkbox"> Alternate view (top-down &#8644; side)</label></div>
     <button id="static" aria-pressed="false">Static frames</button>
   </div>
 </header>
+
+<section class="sizes">
+  <h2>Does it still read as a hand?</h2>
+  <p>The same two silhouettes at 320, 160 and 80 px. 80 px is about the size a
+     preview thumbnail runs at, and it is the only one that settles whether the
+     anatomy works — everything reads at 320.</p>
+  <div class="ruler" id="ruler"></div>
+</section>
 
 <div class="grid" id="grid"></div>
 
@@ -104,13 +130,19 @@
 <script>
 "use strict";
 /* ============================================================================
-   Upright — wrist-ritual hand studies.
+   Upright — wrist-ritual hand studies, iteration 2.
 
-   One renderer, many pose sets — the same shape as FigureLibrary.swift. A hand
-   is built from primitives (rounded-quad palm, finger strokes, forearm stub);
-   an exercise supplies KEYFRAME POSES and the loop interpolates between them.
-   Nothing here is a bitmap or an imported path: every number below is a length
-   or an angle, so the geometry transfers to SwiftUI Canvas verbatim.
+   ITERATION 1 DREW OUTLINES AND EVERY HAND CAME OUT A FORK. Four stroked
+   finger lines side by side read as tines, not fingers, at any weight: the eye
+   gets four near-identical parallel bars and no mass. This version draws the
+   hand as a FILLED SILHOUETTE — a chalk handprint. Filled shapes that overlap
+   MERGE instead of forking, which is what turns four separate finger shapes
+   into one hand, and it is the only reason the profile view works at all.
+
+   Still fully parametric: a digit is a quadratic-Bezier spine swept by a width
+   function, a palm is a closed Bezier blob. No bitmaps, no imported paths —
+   every number below is a length, an angle or a width, so the geometry ports
+   to SwiftUI Canvas verbatim.
 
    Coordinate space: 300 x 300, y DOWN. Angles are degrees measured from +x
    rotating toward +y (so a positive angle points "down-screen").
@@ -118,73 +150,83 @@
 
 /* ---- tokens (DESIGN.md §2) ---------------------------------------------- */
 const CHALK = "#F4F1E8";
+const FLOOR = "#171310";
 const TAPE  = "#FFB520";
-const S     = 300;               // logical canvas edge
-const W_MAIN = 7.0;              // palm body + forearm stub
-const W_FINGER = 6.0;            // fingers + thumb (lighter than the palm)
-const W_FLOOR = 2.6;             // the floor line
-const W_TAPE = 5.0;
+const S     = 300;          // logical canvas edge
+const W_TAPE  = 5.0;
+const W_FLOOR = 2.6;
 
-/* ---- side-view hand primitive -------------------------------------------
-   Not a dead-flat profile — a three-quarter. A true profile stacks all four
-   fingers into a single stroke and the thing stops reading as a hand: at a
-   shallow angle the knuckle row projects to ~25 px, which cannot hold four
-   6 px strokes apart. So the knuckle row is opened up (rise, perpendicular to
-   the palm) and sheared (skew, along it). That diagonal row of knuckles IS
-   the three-quarter cue, and it is what lets you count fingers at a glance. */
-const SIDE = {
-  palmLen:    74,   // heel -> knuckle, along the palm axis
-  palmThick:  56,   // apparent depth at the knuckles; heel end is 0.80x
-  palmRound:  16,   // corner radius of the palm quad
-  f1:         33,   // proximal finger segment
-  f2:         25,   // distal finger segment
-  skew:       0.30, // how far "into the page" also shifts along the palm axis
-  fingerRise: [12, 26, 40, 52],        // index..pinky, across the knuckle row
-  fingerLen:  [0.97, 1.00, 0.92, 0.79],// index..pinky, x (f1 + f2)
-  fingerDrop: 0.11, // fraction of the rise each finger swings back down
-  thumbRise:  7,    // the thumb is the NEAREST stroke of the fan, not a finger
-  thumbAt:    0.74, // where on the palm axis it roots
-  thumbLen:   0.60, // x (f1 + f2)
-  thumbSplay: 7,    // extra degrees, forward and away from the index
-  armLen:     84,
-  armThick:   28,
-  floorY:     216
-};
-
-/* ---- top-down hand primitive -------------------------------------------- */
+/* ---- the handprint seen from above --------------------------------------
+   Local frame: wrist line centred on the origin, fingers toward -y.
+   `at` is a fraction of the knuckle width, so the knuckle row scales with the
+   palm. The lengths are deliberately unequal: equal fingers are the single
+   biggest reason a hand reads as a fork or a garden rake. */
 const TOP = {
-  palmLen:   72,    // wrist line -> knuckle line
-  palmW:     74,    // across the knuckles
-  wristW:    46,    // across the wrist
-  palmRound: 14,
-  fingers:  [54, 61, 56, 44],   // index, middle, ring, pinky
-  spread:    13,    // degrees between adjacent fingers, at rest
-  bow:       3.5,   // sideways bulge of a finger stroke
-  thumbLen:  48,
-  thumbA1:   216,   // thumb segment angles — up-and-out, not a sideways stub
-  thumbA2:   242,
-  armLen:    38,    // a stub: any longer and the two rails read as legs
-  wristY:    202    // where the wrist line sits
+  palmLen:   76,    // wrist line -> knuckle line
+  knuckW:    80,    // across the knuckles — the WIDE end
+  wristW:    46,    // across the wrist    — the NARROW end
+  knuckBow:  9,     // how far the knuckle edge bows out toward the fingers
+  thenar:    18,    // thumb-side bulge; the thing that stops a palm being a box
+  hypo:      8,     // little-finger-side bulge, much smaller
+  fingers: [        // index, middle, ring, pinky
+    { at:-0.33, ang:-97, len:58, w:9.0 },
+    { at:-0.10, ang:-91, len:67, w:9.4 },   // middle is the longest
+    { at: 0.14, ang:-85, len:60, w:9.0 },
+    { at: 0.35, ang:-76, len:45, w:7.8 }    // pinky clearly the shortest
+  ],
+  tipW:      0.60,  // fingertip half-width, x the base half-width
+  curl:      7,     // resting bend along a finger, degrees
+  thumb: { at:-0.46, up:0.34, ang:214, len:54, w:14.0, tipW:0.70, curl:16 },
+  armW:     [15, 20], armRamp: 70,   // wrist half-width -> forearm half-width
+  wristY:    206
 };
 
-/* ---- per-exercise motion ranges (the numbers the note prints) ----------- */
+/* ---- the handprint in profile -------------------------------------------
+   Local frame: heel of the palm at the origin, the floor along +x, the hand
+   body toward -y. The fingers are stacked a few px apart so the filled mass
+   gains depth; they merge rather than fork, which is the whole point. */
+const SIDE = {
+  palmLen:   80,    // heel -> knuckles along the floor
+  heelH:     45,    // palm depth at the heel — the thickest point
+  knuckH:    35,    // palm depth at the knuckles
+  archLift:  5,     // how far the back of the hand domes above the straight line
+  // The rises stack the fingers for depth, but the stack must stay SHALLOWER
+  // than the palm or the whole thing reads as a mitten instead of a hand.
+  fingers: [        // index (nearest the floor) .. pinky (furthest back)
+    { rise: 7,  ang: 0,  len:58, w:8.8 },
+    { rise:12,  ang:-2,  len:66, w:9.2 },
+    { rise:17,  ang:-4,  len:59, w:8.6 },
+    { rise:21,  ang:-7,  len:45, w:7.4 }
+  ],
+  tipW:      0.62,
+  curl:      5,
+  flexToCurl: 0.45,  // how much of a flex reaches the second joint
+  // In a strict profile the thumb of a planted hand is almost entirely
+  // occluded. Cocking it up off the back of the hand at the knuckle end is
+  // the only placement that reads as a thumb rather than as a lumpy palm.
+  thumb: { at:0.70, rise:27, ang:-44, len:40, w:12.5, tipW:0.76, curl:15 },
+  armW:     [13, 18], armRamp: 76,
+  floorY:    222
+};
+
+/* ---- per-exercise motion (every number the note prints) ------------------ */
 const R = {
-  circles:  { dur:3.0, orbitX:17, orbitY:10, spin:9,  tiltAmp:11, armAmp:15, tapeRX:40, tapeRY:23 },
-  rocks:    { dur:2.6, armBack:197, armFwd:251, fingerBack:-4, fingerFwd:-11, slide:5, anchorX:106, arcR:96 },
-  press:    { dur:2.4, heelLift:16, fingerComp:-1, armExtra:-4 },
-  tips:     { dur:2.2, archHigh:[62,22], archLow:[45,16], tiltHigh:18, tiltLow:9,  fan:13 },
-  reverse:  { dur:2.8, armBack:286, armFwd:308, curl1:-9, curl2:-11, slide:6, fan:-7, riseScale:0.78 },
-  pulls:    { dur:3.3, shorten:0.46, curl:34, sideShorten:44 }
+  circles: { dur:3.0, orbitX:18, orbitY:11, spin:10, tapeRX:44, tapeRY:25,
+             sideTilt:7, sideArm:14 },
+  rocks:   { dur:2.6, armBack:200, armFwd:254, arcR:98, anchorX:104 },
+  press:   { dur:2.4, heelLift:15, armFollow:-5 },
+  tips:    { dur:2.2, curlHigh:62, curlLow:50, tiltHigh:22, tiltLow:13, fan:-7 },
+  reverse: { dur:2.8, armBack:250, armFwd:272, curl:-14, anchorX:198 },
+  pulls:   { dur:3.3, pullBack:38, shorten:0.14, sideBack:34 }
 };
 
 /* ========================================================================== */
-/* vector + path helpers                                                      */
+/* maths                                                                      */
 /* ========================================================================== */
 const rad = d => d * Math.PI / 180;
 const V   = (x,y) => ({x,y});
 const add = (a,b) => ({x:a.x+b.x, y:a.y+b.y});
 const dir = (deg,len) => ({x:Math.cos(rad(deg))*len, y:Math.sin(rad(deg))*len});
-const mid = (a,b) => ({x:(a.x+b.x)/2, y:(a.y+b.y)/2});
 const lerp = (a,b,u) => a + (b-a)*u;
 
 function rotAbout(p, c, deg){
@@ -192,242 +234,266 @@ function rotAbout(p, c, deg){
   const dx = p.x-c.x, dy = p.y-c.y;
   return {x: c.x + dx*co - dy*s, y: c.y + dx*s + dy*co};
 }
-/** unit normal of a direction angle, rotated -90deg (points "up" for +x). */
-const normal = deg => dir(deg - 90, 1);
-
-function chalk(ctx, w){
-  ctx.strokeStyle = CHALK; ctx.fillStyle = CHALK;
-  ctx.lineWidth = w; ctx.lineCap = "round"; ctx.lineJoin = "round";
-}
-function tapeStyle(ctx, w){
-  ctx.strokeStyle = TAPE; ctx.fillStyle = TAPE;
-  ctx.lineWidth = w; ctx.lineCap = "round"; ctx.lineJoin = "round";
-}
-function poly(ctx, pts){
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
-  ctx.stroke();
-}
-/** Polyline drawn as a smooth spline through its points — reads as a finger. */
-function smooth(ctx, pts){
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  if (pts.length === 2){ ctx.lineTo(pts[1].x, pts[1].y); }
-  else {
-    for (let i=1;i<pts.length-1;i++){
-      const m = mid(pts[i], pts[i+1]);
-      ctx.quadraticCurveTo(pts[i].x, pts[i].y, m.x, m.y);
-    }
-    ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
-  }
-  ctx.stroke();
-}
-/** Closed polygon with uniformly rounded corners — the palm body. */
-function roundedPoly(ctx, pts, r){
-  const n = pts.length;
-  ctx.beginPath();
-  const m0 = mid(pts[0], pts[1]);
-  ctx.moveTo(m0.x, m0.y);
-  for (let i=1;i<=n;i++){
-    const cur = pts[i % n], nxt = pts[(i+1) % n];
-    const m = mid(cur, nxt);
-    ctx.arcTo(cur.x, cur.y, m.x, m.y, r);
-  }
-  ctx.closePath();
-  ctx.stroke();
-}
-function arrowHead(ctx, p, deg, size){
-  const a = add(p, dir(deg + 152, size));
-  const b = add(p, dir(deg - 152, size));
-  ctx.beginPath();
-  ctx.moveTo(a.x, a.y); ctx.lineTo(p.x, p.y); ctx.lineTo(b.x, b.y);
-  ctx.stroke();
-}
-function floorLine(ctx, y){
-  chalk(ctx, W_FLOOR);
-  ctx.globalAlpha = 0.5;
-  poly(ctx, [V(16, y), V(S-16, y)]);
-  ctx.globalAlpha = 1;
-}
+const qBez = (a,b,c,s) => {
+  const m = 1-s;
+  return {x: m*m*a.x + 2*m*s*b.x + s*s*c.x,
+          y: m*m*a.y + 2*m*s*b.y + s*s*c.y};
+};
+const qTan = (a,b,c,s) => ({x: 2*(1-s)*(b.x-a.x) + 2*s*(c.x-b.x),
+                            y: 2*(1-s)*(b.y-a.y) + 2*s*(c.y-b.y)});
 
 /* easing / cycling */
-const tri      = t => 1 - Math.abs(2*t - 1);          // 0 -> 1 -> 0
-const easeInOut= t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
-const pingPong = t => easeInOut(tri(t));
+const tri       = t => 1 - Math.abs(2*t - 1);      // 0 -> 1 -> 0
+const easeInOut = t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+const pingPong  = t => easeInOut(tri(t));
 const TAU = Math.PI * 2;
 
 /* ========================================================================== */
-/* SIDE-VIEW HAND                                                             */
+/* the two primitives everything is built from                                */
+/* ========================================================================== */
+
+/**
+ * A digit: a quadratic-Bezier spine swept by a width that tapers base -> tip
+ * and then domes over into a round fingertip.
+ *
+ * Each part of the hand is filled as its OWN path. Building them into one path
+ * and filling once is tempting, but the palm winds one way and a digit winds
+ * the other, and fill()'s nonzero rule then CANCELS them where they overlap —
+ * which punches black slots into the palm between the fingers. Separate fills
+ * of the same colour always union, whatever direction anything winds in.
+ *
+ * The base end is left square: it always sits inside the palm blob.
+ */
+const DIGIT_STEPS = 22;
+const CAP_FROM    = 0.84;          // where the tip starts doming over
+function fillDigit(ctx, base, ang, len, wBase, tipW, curl){
+  // Spine: half the length straight out of the knuckle, then bending by `curl`.
+  const mid = add(base, dir(ang, len * 0.5));
+  const tip = add(mid,  dir(ang + curl, len * 0.5));
+  const wTip = wBase * tipW;
+
+  const left = [], right = [];
+  for (let i = 0; i <= DIGIT_STEPS; i++){
+    const s = i / DIGIT_STEPS;
+    const p = qBez(base, mid, tip, s);
+    const t = qTan(base, mid, tip, s);
+    const m = Math.hypot(t.x, t.y) || 1;
+    const n = {x: -t.y/m, y: t.x/m};
+    let w = lerp(wBase, wTip, s);
+    if (s > CAP_FROM){                      // round the fingertip off
+      const u = (s - CAP_FROM) / (1 - CAP_FROM);
+      w *= Math.sqrt(Math.max(0, 1 - u*u));
+    }
+    left.push({x: p.x + n.x*w, y: p.y + n.y*w});
+    right.push({x: p.x - n.x*w, y: p.y - n.y*w});
+  }
+  ctx.beginPath();
+  ctx.moveTo(left[0].x, left[0].y);
+  for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y);
+  for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * The forearm: a straight band that widens over `ramp` px then runs on at
+ * constant width until it leaves the canvas. Running it off the edge is what
+ * makes it read as a cropped arm rather than a severed stub.
+ */
+function fillArm(ctx, wrist, ang, w0, w1, ramp){
+  const long = 460;                        // comfortably past any canvas edge
+  const t = dir(ang, 1);
+  const n = {x: -t.y, y: t.x};
+  const a = wrist;
+  const b = add(wrist, dir(ang, ramp));
+  const c = add(wrist, dir(ang, long));
+  const pt = (p, w, side) => ({x: p.x + n.x*w*side, y: p.y + n.y*w*side});
+  ctx.beginPath();
+  let q = pt(a, w0, 1);  ctx.moveTo(q.x, q.y);
+  q = pt(b, w1,  1);     ctx.lineTo(q.x, q.y);
+  q = pt(c, w1,  1);     ctx.lineTo(q.x, q.y);
+  q = pt(c, w1, -1);     ctx.lineTo(q.x, q.y);
+  q = pt(b, w1, -1);     ctx.lineTo(q.x, q.y);
+  q = pt(a, w0, -1);     ctx.lineTo(q.x, q.y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/* ========================================================================== */
+/* TOP-DOWN HANDPRINT                                                         */
 /*                                                                            */
-/* Local frame: heel at (0,0), palm axis along +x toward the knuckles, palm    */
-/* body extending to -y (so the palm SURFACE is the contact line and the back  */
-/* of the hand is the far edge). Fingers bend from +x toward +y — i.e. toward  */
-/* the palm side, which is where fingers actually curl.                        */
+/* pose = { rot, dx, dy, spread, pulls:[i,m,r,p], thumbPull }                  */
+/* ========================================================================== */
+function topHand(ctx, pose){
+  const P = TOP;
+  const knuckY = -P.palmLen;
+  const hw = P.knuckW / 2, ww = P.wristW / 2;
+  const rot = pose.rot || 0;
+
+  const place = p => {
+    const r = rotAbout(p, V(0,0), rot);
+    return V(r.x + S/2 + (pose.dx||0), r.y + P.wristY + (pose.dy||0));
+  };
+  const T = (x,y) => place(V(x,y));
+
+  ctx.fillStyle = CHALK;
+
+  // --- forearm, straight down out of frame ------------------------------
+  fillArm(ctx, T(0, 0), 90 + rot, P.armW[0], P.armW[1], P.armRamp);
+
+  // --- palm: a blob. Wide at the knuckles, narrow at the wrist, thenar
+  //     bulge on the thumb side. Four cubics, not one straight edge.
+  const kL = T(-hw, knuckY), kR = T(hw, knuckY);
+  const wL = T(-ww, 0),      wR = T(ww, 0);
+  let c1, c2;
+  ctx.beginPath();
+  ctx.moveTo(kL.x, kL.y);
+  c1 = T(-hw*0.45, knuckY - P.knuckBow); c2 = T(hw*0.45, knuckY - P.knuckBow);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, kR.x, kR.y);      // knuckle edge
+  c1 = T(hw + P.hypo*0.5, knuckY*0.62);  c2 = T(ww + P.hypo, knuckY*0.24);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, wR.x, wR.y);      // little-finger side
+  c1 = T(ww*0.4, 6); c2 = T(-ww*0.4, 6);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, wL.x, wL.y);      // wrist edge
+  c1 = T(-ww - P.thenar, knuckY*0.28);   c2 = T(-hw - P.thenar*0.5, knuckY*0.70);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, kL.x, kL.y);      // thenar side
+  ctx.closePath();
+  ctx.fill();
+
+  // --- four fingers ------------------------------------------------------
+  const spread = pose.spread || 0;
+  P.fingers.forEach((f, i) => {
+    const pull = pose.pulls ? pose.pulls[i] : 0;
+    const away = i < 2 ? -1 : 1;                 // which way the tip curls off
+    const base = T(f.at * P.knuckW, knuckY + Math.abs(i - 1.4) * 2.4);
+    fillDigit(ctx, base,
+              f.ang + (i - 1.5) * spread + rot,
+              f.len * (1 - R.pulls.shorten * pull),
+              f.w, P.tipW,
+              (P.curl + R.pulls.pullBack * pull) * away);
+  });
+
+  // --- thumb: off the SIDE of the palm, ~45 deg, short and thick ----------
+  const th = P.thumb, tp = pose.thumbPull || 0;
+  fillDigit(ctx, T(th.at * P.knuckW, knuckY * th.up),
+            th.ang + rot + 20 * tp, th.len * (1 - 0.18 * tp),
+            th.w, th.tipW, th.curl);
+}
+
+/* ========================================================================== */
+/* PROFILE HANDPRINT                                                          */
 /*                                                                            */
-/* pose = {                                                                    */
-/*   pivot:'heel'|'knuckle'|'tip'  which point is pinned to the floor          */
-/*   anchorX, lift, slide          where that pivot sits                       */
-/*   tilt                          palm axis vs. the floor                     */
-/*   f1, f2                        finger bend at knuckle / mid joint          */
-/*   thumb                         thumb root angle                            */
-/*   arm                           forearm direction, local frame              */
-/*   mirror                        true = hand points -x (reverse palm)        */
-/* }                                                                          */
+/* pose = { pivot:'wrist'|'knuckle'|'tip', rot, arm, anchorX, lift, slide,     */
+/*          flex (extra bend at every knuckle), mirror }                       */
 /* ========================================================================== */
 function sideHand(ctx, pose){
   const P = SIDE;
   const m  = pose.mirror ? -1 : 1;
-  const mx = p => ({x: p.x * m, y: p.y});          // mirror about the palm's y axis
+  const mx = p => ({x: p.x * m, y: p.y});
 
-  // --- local skeleton ----------------------------------------------------
-  // up(d): d units "into the page", sheared along the palm axis. Every part
-  // of the hand uses it, so the whole primitive shares one projection.
-  //
-  // The `* m` cancels the mirror that `place` applies later, which keeps the
-  // knuckle row receding the SAME way on screen whichever way the hand points.
-  // Without it, a mirrored hand's knuckles recede along the fingers instead of
-  // across them, the four strokes telescope, and the hand reads as a wing.
-  const up = d => V(d * P.skew * m, -d);
-  const heel = V(0, 0);
-  const kn   = V(P.palmLen, 0);
-  const heelB= add(V(4, 0),            up(P.palmThick * 0.80));
-  const knB  = add(V(P.palmLen - 4, 0), up(P.palmThick));
+  const heel  = V(0, 0);
+  const knuck = V(P.palmLen, 0);
+  const wrist = V(-2, -P.heelH * 0.50);
+  const flex  = pose.flex || 0;
 
-  /** A two-segment digit rooted on the knuckle row, `rise` into the page. */
-  const digit = (rootX, rise, k, bend1, bend2) => {
-    const base = add(V(rootX, 0), up(rise));
-    // Swing it slightly back toward the floor: enough that the group fans,
-    // not so much that the tips converge into a wedge. What's left over is
-    // the depth cue — the far fingers stay higher up the page.
-    const drop = Math.atan2(rise * P.fingerDrop, (P.f1 + P.f2) * k) * 180/Math.PI;
-    const a1   = bend1 + drop;
-    const j    = add(base, dir(a1, P.f1 * k));
-    const tip  = add(j,    dir(a1 + bend2, P.f2 * k));
-    return [base, j, tip];
-  };
-  const fan = pose.fan || 0;
-  const rs  = pose.riseScale === undefined ? 1 : pose.riseScale;
-  const finger = i => digit(P.palmLen, P.fingerRise[i] * rs, P.fingerLen[i],
-                            pose.f1 + fan * (i - 1.5), pose.f2);
-  const lead   = finger(0);
-  // The thumb rides lowest and nearest, splayed forward off the index.
-  const thumb  = digit(P.palmLen * P.thumbAt, P.thumbRise, P.thumbLen,
-                       pose.thumb + P.thumbSplay, pose.f2 * 0.6);
+  // Where the index finger ends, before placement — the fingertip-press pivot.
+  const tipOfIndex = (() => {
+    const f = P.fingers[0];
+    const fx = flex + (pose.fanFlex || 0) * (0 - 1.5);
+    const a = f.ang + fx;
+    const mid = add(V(P.palmLen, -f.rise), dir(a, f.len * 0.5));
+    return add(mid, dir(a + P.curl + fx * P.flexToCurl, f.len * 0.5));
+  })();
 
-  const wrist = add(V(-4, 0), up(P.palmThick * 0.36));
-  const armN  = normal(pose.arm);                  // across the forearm
-  const armFar= add(wrist, dir(pose.arm, P.armLen));
-  const half  = P.armThick / 2;
-
-  // --- place it: rotate about the pivot, then drop the pivot on the floor --
-  const pivotLocal = pose.pivot === "knuckle" ? kn : pose.pivot === "tip" ? lead[2] : heel;
+  const pivot = pose.pivot === "knuckle" ? knuck
+              : pose.pivot === "tip"     ? tipOfIndex
+              : wrist;
   const target = V(pose.anchorX + (pose.slide || 0), P.floorY - (pose.lift || 0));
+
+  // The silhouette is RIGID: one rotation about one joint, then one translate.
   const place = p => {
-    const r = rotAbout(mx(p), mx(pivotLocal), pose.tilt * m);
-    return V(r.x - mx(pivotLocal).x + target.x, r.y - mx(pivotLocal).y + target.y);
+    const r = rotAbout(mx(p), mx(pivot), pose.rot * m);
+    return V(r.x - mx(pivot).x + target.x, r.y - mx(pivot).y + target.y);
   };
+  // A local angle taken into world space, mirror and hand rotation included.
+  const worldAng = a => a * m + pose.rot * m + (m < 0 ? 180 : 0);
 
-  // --- forearm stub: two rails with a rounded cap ------------------------
-  const wA = place(add(wrist, {x: armN.x*half,  y: armN.y*half}));
-  const wB = place(add(wrist, {x:-armN.x*half,  y:-armN.y*half}));
-  const fA = place(add(armFar,{x: armN.x*half,  y: armN.y*half}));
-  const fB = place(add(armFar,{x:-armN.x*half, y:-armN.y*half}));
-  const capC = place(add(armFar, dir(pose.arm, half * 0.9)));
+  ctx.fillStyle = CHALK;
 
-  chalk(ctx, W_MAIN);
+  // --- forearm, rising out of frame from the wrist -----------------------
+  fillArm(ctx, place(wrist), pose.arm * m + (m < 0 ? 180 : 0),
+          P.armW[0], P.armW[1], P.armRamp);
+
+  // --- palm: flat on the floor, domed over the back, thickest at the heel -
+  const B = (x,y) => place(V(x,y));
+  const L = P.palmLen, hH = P.heelH, kH = P.knuckH;
+  let p = B(8, 0), c1, c2;
   ctx.beginPath();
-  ctx.moveTo(wA.x, wA.y);
-  ctx.lineTo(fA.x, fA.y);
-  ctx.quadraticCurveTo(capC.x, capC.y, fB.x, fB.y);
-  ctx.lineTo(wB.x, wB.y);
-  ctx.stroke();
+  ctx.moveTo(p.x, p.y);
+  p = B(L - 10, 0);                      ctx.lineTo(p.x, p.y);        // floor edge
+  c1 = B(L, 0);      c2 = B(L, -6);   p = B(L, -10);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // front corner
+  p = B(L, -kH + 8);                     ctx.lineTo(p.x, p.y);        // knuckle face
+  c1 = B(L, -kH);    c2 = B(L - 8, -kH); p = B(L - 13, -kH);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // top-front corner
+  c1 = B(L*0.62, -kH - P.archLift); c2 = B(L*0.28, -hH - P.archLift*0.5);
+  p = B(10, -hH);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // back of the hand
+  c1 = B(0, -hH);    c2 = B(0, -hH + 7); p = B(0, -hH + 12);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // top-back corner
+  p = B(0, -10);                         ctx.lineTo(p.x, p.y);        // heel face
+  c1 = B(0, 0);      c2 = B(4, 0);    p = B(8, 0);
+  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // heel corner
+  ctx.closePath();
+  ctx.fill();
 
-  // --- fingers, far ones first so the near ones sit on top ---------------
-  for (let i = 3; i >= 1; i--){
-    chalk(ctx, W_FINGER);
-    smooth(ctx, finger(i).map(place));
-  }
+  // --- fingers: stacked a few px apart so the mass gains depth ------------
+  // `flex` goes mostly into the knuckle angle and only partly into the curl:
+  // put all of it into both and a flexed hand rolls up into a solid hoof.
+  // `fanFlex` staggers the group so the tips separate instead of stacking.
+  const fanFlex = pose.fanFlex || 0;
+  P.fingers.forEach((f, i) => {
+    const fx = flex + fanFlex * (i - 1.5);
+    fillDigit(ctx, place(V(P.palmLen, -f.rise)), worldAng(f.ang + fx),
+              f.len, f.w, P.tipW, (P.curl + fx * P.flexToCurl) * m);
+  });
 
-  // --- palm body ---------------------------------------------------------
-  chalk(ctx, W_MAIN);
-  roundedPoly(ctx, [heel, kn, knB, heelB].map(place), P.palmRound);
-
-  // --- index, then the thumb nearest of all ------------------------------
-  chalk(ctx, W_FINGER);
-  smooth(ctx, lead.map(place));
-  smooth(ctx, thumb.map(place));
-
+  // --- thumb: shorter, much thicker, angled up off the palm ---------------
+  const th = P.thumb;
+  fillDigit(ctx, place(V(P.palmLen * th.at, -th.rise)), worldAng(th.ang),
+            th.len, th.w, th.tipW, th.curl * m);
 }
 
 /* ========================================================================== */
-/* TOP-DOWN HAND                                                              */
-/*                                                                            */
-/* Local frame: wrist line centred on (0,0), fingers pointing -y (up-screen).  */
-/* pose = { rot, dx, dy, spread, pulls:[i,m,r,p], thumbPull }                 */
+/* tape hints — drawn ON TOP, since a filled silhouette hides anything under  */
 /* ========================================================================== */
-function topHand(ctx, pose){
-  const P = TOP;
-  const centre = V(S/2 + (pose.dx||0), P.wristY + (pose.dy||0));
-  const place = p => {
-    const r = rotAbout(p, V(0,0), pose.rot || 0);
-    return V(r.x + centre.x, r.y + centre.y);
-  };
-
-  // Forearm stub: two rails closed by a cap. Left open they read as legs.
-  const aL = place(V(-P.wristW*0.46, 0)), aR = place(V(P.wristW*0.46, 0));
-  const fL = place(V(-P.wristW*0.46 - 2, P.armLen)), fR = place(V(P.wristW*0.46 + 2, P.armLen));
-  const cap= place(V(0, P.armLen + P.wristW*0.30));
-  chalk(ctx, W_MAIN);
+function tapeStyle(ctx, w){
+  ctx.strokeStyle = TAPE; ctx.fillStyle = TAPE;
+  ctx.lineWidth = w === undefined ? W_TAPE : w;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+}
+function line(ctx, a, b){
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+}
+function arrowHead(ctx, p, deg, size){
+  const a = add(p, dir(deg + 152, size)), b = add(p, dir(deg - 152, size));
   ctx.beginPath();
-  ctx.moveTo(aL.x, aL.y); ctx.lineTo(fL.x, fL.y);
-  ctx.quadraticCurveTo(cap.x, cap.y, fR.x, fR.y);
-  ctx.lineTo(aR.x, aR.y);
-  ctx.stroke();
-
-  // fingers — drawn before the palm so the palm's edge sits on top
-  const spread = pose.spread !== undefined ? pose.spread : P.spread;
-  const knuckY = -P.palmLen;
-  for (let i=0;i<4;i++){
-    const baseX = lerp(-P.palmW*0.40, P.palmW*0.40, i/3);
-    const base  = V(baseX, knuckY + Math.abs(i - 1.4) * 2.2);   // knuckle arc
-    const pull  = pose.pulls ? pose.pulls[i] : 0;
-    const len   = P.fingers[i] * (1 - R.pulls.shorten * pull);
-    const ang   = -90 + (i - 1.5) * spread;
-    const j     = add(base, dir(ang, len * 0.58));
-    const bow   = dir(ang + 90, P.bow * (i - 1.5) * 0.6);
-    const tipA  = ang + R.pulls.curl * pull * (i < 2 ? -1 : 1);
-    const tip   = add(add(j, bow), dir(tipA, len * 0.46));
-    chalk(ctx, W_FINGER);
-    smooth(ctx, [base, add(j, bow), tip].map(place));
-  }
-
-  // thumb
-  const tPull = pose.thumbPull || 0;
-  const tRoot = V(-P.palmW*0.46, -P.palmLen*0.30);
-  const tMid  = add(tRoot, dir(P.thumbA1 + 16*tPull, P.thumbLen*0.55*(1-0.3*tPull)));
-  const tTip  = add(tMid,  dir(P.thumbA2 + 26*tPull, P.thumbLen*0.50*(1-0.3*tPull)));
-  chalk(ctx, W_FINGER);
-  smooth(ctx, [tRoot, tMid, tTip].map(place));
-
-  // palm
-  chalk(ctx, W_MAIN);
-  roundedPoly(ctx, [
-    V(-P.wristW/2, 0), V(P.wristW/2, 0),
-    V(P.palmW/2, knuckY), V(-P.palmW/2, knuckY)
-  ].map(place), P.palmRound);
-
+  ctx.moveTo(a.x, a.y); ctx.lineTo(p.x, p.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+}
+function floorLine(ctx, y){
+  ctx.strokeStyle = CHALK; ctx.lineWidth = W_FLOOR; ctx.lineCap = "round";
+  ctx.globalAlpha = 0.45;
+  line(ctx, V(16, y), V(S-16, y));
+  ctx.globalAlpha = 1;
 }
 
 /* ========================================================================== */
 /* EXERCISES                                                                  */
-/* Each supplies pose(view, t) and tape(ctx, view, t). t is cycle phase [0,1). */
 /* ========================================================================== */
 
-/** Side-view rest pose — every side exercise starts from this and overrides. */
+/** Profile rest pose. Every side exercise starts here and overrides. */
 const flat = over => Object.assign({
-  pivot:"heel", anchorX:88, lift:0, slide:0, tilt:0,
-  f1:-4, f2:7, fan:0, riseScale:1, thumb:-2, arm:216, mirror:false
+  pivot:"wrist", rot:0, arm:222, anchorX:96, lift:0, slide:0,
+  flex:0, fanFlex:0, mirror:false
 }, over);
 
 const EXERCISES = [
@@ -440,78 +506,60 @@ const EXERCISES = [
       rot: R.circles.spin * Math.sin(rad(a)),
       dx:  R.circles.orbitX * Math.cos(rad(a)),
       dy:  R.circles.orbitY * Math.sin(rad(a)),
-      spread: 16, pulls:[0,0,0,0]
+      spread: 3, pulls:[0,0,0,0]
     };
     return flat({
-      tilt: R.circles.tiltAmp * Math.sin(rad(a)) * 0.5,
-      arm:  216 + R.circles.armAmp * Math.sin(rad(a)),
-      slide: 5 * Math.cos(rad(a)),
-      lift:  3 + 3 * Math.sin(rad(a))
+      rot:   R.circles.sideTilt * Math.sin(rad(a)),
+      arm:   222 + R.circles.sideArm * Math.sin(rad(a)),
+      slide: 6 * Math.cos(rad(a))
     });
   },
   tape(ctx, view, t){
     const a = t * 360;
-    tapeStyle(ctx, W_TAPE);
+    tapeStyle(ctx);
     if (view === "top"){
-      const c = V(S/2, TOP.wristY + 12);
+      const c = V(S/2, TOP.wristY + 10);
       ctx.setLineDash([9, 8]);
-      ctx.beginPath();
-      ctx.ellipse(c.x, c.y, R.circles.tapeRX, R.circles.tapeRY, 0, 0, TAU);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.ellipse(c.x, c.y, R.circles.tapeRX, R.circles.tapeRY, 0, 0, TAU);
+      ctx.stroke(); ctx.setLineDash([]);
       const p = V(c.x + R.circles.tapeRX*Math.cos(rad(a)), c.y + R.circles.tapeRY*Math.sin(rad(a)));
-      const tan = Math.atan2(R.circles.tapeRY*Math.cos(rad(a)), -R.circles.tapeRX*Math.sin(rad(a)));
-      ctx.beginPath(); ctx.arc(p.x, p.y, 4.4, 0, TAU); ctx.fill();
-      arrowHead(ctx, add(p, dir(tan*180/Math.PI, 11)), tan*180/Math.PI, 11);
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, TAU); ctx.fill();
+      const tan = Math.atan2(R.circles.tapeRY*Math.cos(rad(a)), -R.circles.tapeRX*Math.sin(rad(a)))*180/Math.PI;
+      arrowHead(ctx, add(p, dir(tan, 14)), tan, 11);
     } else {
-      // The traced path lies ON the floor here, ringing the planted hand.
-      const c = V(152, SIDE.floorY - 5);
+      const c = V(158, SIDE.floorY - 4);
       ctx.setLineDash([9, 8]);
-      ctx.beginPath();
-      ctx.ellipse(c.x, c.y, 64, 15, 0, 0, TAU);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      const p = V(c.x + 64*Math.cos(rad(a)), c.y + 15*Math.sin(rad(a)));
-      ctx.beginPath(); ctx.arc(p.x, p.y, 4.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(c.x, c.y, 72, 15, 0, 0, TAU);
+      ctx.stroke(); ctx.setLineDash([]);
+      const p = V(c.x + 72*Math.cos(rad(a)), c.y + 15*Math.sin(rad(a)));
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, TAU); ctx.fill();
     }
   },
-  note:["Top-down. Hand orbits an ellipse; the tape ring is the traced path.",
+  note:["Top-down. The print orbits an ellipse; the tape ring is the path it traces.",
         ["orbit", `${R.circles.orbitX} x ${R.circles.orbitY} px`],
-        ["hand spin", `+/-${R.circles.spin} deg`],
-        ["tape ellipse", `rx ${R.circles.tapeRX}, ry ${R.circles.tapeRY}, dash 9/8`],
-        ["side variant", `tilt +/-${(R.circles.tiltAmp*0.5).toFixed(1)} deg, forearm 216 +/-${R.circles.armAmp} deg`]]
+        ["print spin", `+/-${R.circles.spin} deg about the wrist`],
+        ["tape ellipse", `rx ${R.circles.tapeRX}, ry ${R.circles.tapeRY}, dash 9/8, travelling dot`],
+        ["side variant", `rot +/-${R.circles.sideTilt} deg, forearm 222 +/-${R.circles.sideArm} deg`]]
 },
 {
   id:"rocks", name:"Palm rocks", dur:R.rocks.dur, views:["side"],
   keys:[0, 0.25, 0.5],
   pose(view, t){
     const u = pingPong(t);
-    return flat({
-      anchorX: R.rocks.anchorX,
-      arm:  lerp(R.rocks.armBack, R.rocks.armFwd, u),
-      f1:   lerp(R.rocks.fingerBack, R.rocks.fingerFwd, u),
-      f2:   lerp(7, 12, u),
-      thumb:lerp(-5, 4, u),
-      slide:lerp(0, R.rocks.slide, u)
-    });
+    // The hand never changes shape: only the forearm travels over the wrist.
+    return flat({ anchorX:R.rocks.anchorX, arm: lerp(R.rocks.armBack, R.rocks.armFwd, u) });
   },
-  tape(ctx, view, t){
-    // Double-headed arc centred on the WRIST — it is the forearm's own
-    // travel, so it has to share the forearm's centre of rotation. Radius
-    // clears the forearm's far end (84 px) so the two never overlap.
-    const o = V(R.rocks.anchorX + 2, SIDE.floorY - 20), r = R.rocks.arcR;
-    const a0 = R.rocks.armBack, a1 = R.rocks.armFwd;
-    tapeStyle(ctx, W_TAPE);
-    ctx.beginPath();
-    ctx.arc(o.x, o.y, r, rad(a0), rad(a1), false);
-    ctx.stroke();
-    arrowHead(ctx, add(o, dir(a0, r)), a0 - 90, 11);
-    arrowHead(ctx, add(o, dir(a1, r)), a1 + 90, 11);
+  tape(ctx){
+    // Centred on the WRIST, because that is the forearm's centre of rotation.
+    const o = V(R.rocks.anchorX + 2, SIDE.floorY - SIDE.heelH*0.5), r = R.rocks.arcR;
+    tapeStyle(ctx);
+    ctx.beginPath(); ctx.arc(o.x, o.y, r, rad(R.rocks.armBack), rad(R.rocks.armFwd), false); ctx.stroke();
+    arrowHead(ctx, add(o, dir(R.rocks.armBack, r)), R.rocks.armBack - 90, 11);
+    arrowHead(ctx, add(o, dir(R.rocks.armFwd,  r)), R.rocks.armFwd  + 90, 11);
   },
-  note:["Side view. Palm planted; only the forearm travels over the wrist.",
+  note:["Profile. The silhouette is completely rigid — only the forearm moves.",
         ["forearm sweep", `${R.rocks.armBack} deg -> ${R.rocks.armFwd} deg (${R.rocks.armFwd-R.rocks.armBack} deg total)`],
-        ["finger bend", `${R.rocks.fingerBack} deg -> ${R.rocks.fingerFwd} deg`],
-        ["heel slide", `${R.rocks.slide} px`],
+        ["hand", `no deformation at all, planted at x ${R.rocks.anchorX}`],
         ["tape", `arc r ${R.rocks.arcR} about the wrist, arrowheads both ends`]]
 },
 {
@@ -519,141 +567,120 @@ const EXERCISES = [
   keys:[0, 0.3, 0.5],
   pose(view, t){
     const u = pingPong(t);
-    // Pivot at the knuckles: the fingers stay planted and the HEEL peels up.
-    const tilt = lerp(0, R.press.heelLift, u);
+    // Pivots at the KNUCKLES, not the wrist: the fingers stay planted and the
+    // heel peels up. Rotating about the wrist would lift the fingers instead,
+    // which is the opposite exercise.
     return flat({
-      pivot:"knuckle", anchorX:164, tilt,
-      f1: -tilt + R.press.fingerComp, f2: 6,
-      thumb: -2 - tilt*0.35,
-      arm: 216 + R.press.armExtra * u
+      pivot:"knuckle", anchorX:176,
+      rot: lerp(0, R.press.heelLift, u),
+      arm: 222 + R.press.armFollow * u
     });
   },
-  tape(ctx, view, t){
-    tapeStyle(ctx, W_TAPE);
-    // Straight lift arrow at the heel of the hand.
-    const x = 84, y0 = SIDE.floorY - 8, len = 40;
-    poly(ctx, [V(x, y0), V(x, y0 - len)]);
+  tape(ctx){
+    tapeStyle(ctx);
+    const x = 90, y0 = SIDE.floorY - 6, len = 42;
+    line(ctx, V(x, y0), V(x, y0 - len));
     arrowHead(ctx, V(x, y0 - len), -90, 11);
   },
-  note:["Side view only: the movement IS the heel lift, the one axis a top-down camera flattens away.",
+  note:["Profile, pivoting at the knuckles. Side only: the movement IS the heel lift.",
         ["heel lift", `${R.press.heelLift} deg about the knuckle (~${(SIDE.palmLen*Math.sin(rad(R.press.heelLift))).toFixed(0)} px of travel)`],
-        ["finger compensation", `f1 = -tilt ${R.press.fingerComp} deg, which keeps the tips on the floor`],
-        ["forearm follows", `${R.press.armExtra} deg`],
-        ["tape", `${40} px lift arrow at x 84`]]
+        ["forearm follows", `${R.press.armFollow} deg`],
+        ["hand", `rigid — the whole silhouette rotates as one piece`],
+        ["tape", `42 px lift arrow at the heel`]]
 },
 {
   id:"tips", name:"Fingertip press", dur:R.tips.dur, views:["side"],
   keys:[0, 0.3, 0.5],
   pose(view, t){
     const u = pingPong(t);
-    const A = R.tips;
-    // Pivot at the fingertip: the arch loads and unloads, tips never move.
+    // The one exercise that must deform: the fingers flex so the palm can arch
+    // clear of the floor while the tips stay planted.
     return flat({
-      pivot:"tip", anchorX:214,
-      tilt: lerp(A.tiltHigh, A.tiltLow, u),
-      f1:   lerp(A.archHigh[0], A.archLow[0], u),
-      f2:   lerp(A.archHigh[1], A.archLow[1], u),
-      fan:  A.fan,
-      thumb: lerp(30, 24, u),
-      arm:   216
+      pivot:"tip", anchorX:230,
+      flex:    lerp(R.tips.curlHigh, R.tips.curlLow, u),
+      fanFlex: R.tips.fan,
+      rot:     lerp(R.tips.tiltHigh, R.tips.tiltLow, u),
+      arm:  222
     });
   },
   tape(ctx, view, t){
-    // Short press arrow riding down on the knuckle ridge.
     const u = pingPong(t);
-    const y = lerp(SIDE.floorY - 96, SIDE.floorY - 86, u);
-    tapeStyle(ctx, W_TAPE);
-    poly(ctx, [V(196, y - 30), V(196, y - 4)]);
-    arrowHead(ctx, V(196, y - 2), 90, 11);
+    const y = lerp(SIDE.floorY - 104, SIDE.floorY - 92, u);
+    tapeStyle(ctx);
+    line(ctx, V(206, y - 34), V(206, y - 8));
+    arrowHead(ctx, V(206, y - 6), 90, 11);
   },
-  note:["Side view, pivot at the fingertips. Palm never touches the floor.",
-        ["arch (f1 / f2)", `${R.tips.archHigh[0]}/${R.tips.archHigh[1]} deg -> ${R.tips.archLow[0]}/${R.tips.archLow[1]} deg`],
-        ["knuckle fan", `${R.tips.fan} deg per finger — staggers the tips instead of stacking them`],
-        ["palm tilt", `${R.tips.tiltHigh} deg -> ${R.tips.tiltLow} deg (heel high)`],
-        ["tip anchor", `x 214 on the floor line`],
-        ["tape", `26 px press arrow at the knuckle`]]
+  note:["Profile, pivoting at the fingertips. The palm never touches the floor.",
+        ["finger flex", `${R.tips.curlHigh} deg -> ${R.tips.curlLow} deg at the knuckle`],
+        ["flex fan", `${R.tips.fan} deg per finger — separates the tips instead of stacking them`],
+        ["palm tilt", `${R.tips.tiltHigh} deg -> ${R.tips.tiltLow} deg, heel high`],
+        ["tip anchor", `x 230 on the floor line`],
+        ["tape", `26 px press arrow over the knuckles`]]
 },
 {
   id:"reverse", name:"Reverse palm", dur:R.reverse.dur, views:["side"],
   keys:[0, 0.25, 0.5],
   pose(view, t){
     const u = pingPong(t);
-    // Mirrored: the hand points back toward the body, fingers curling UP
-    // (negative bend) because the PALM faces the ceiling here.
+    // Mirrored: fingers point back toward the body, back of the hand on the
+    // floor. Negative flex lifts the fingertips — that is the palm-up cue.
     return flat({
-      mirror:true, anchorX:196, pivot:"heel",
-      // A mirrored hand's fingers point INTO the receding direction, so the
-      // group converges to a point and reads as a wing. Compressing the
-      // knuckle row and fanning the tips apart is what pulls it back to a hand.
-      fan: R.reverse.fan, riseScale: R.reverse.riseScale,
-      arm:   lerp(R.reverse.armBack, R.reverse.armFwd, u),
-      f1:    lerp(R.reverse.curl1, R.reverse.curl1 - 6, u),
-      f2:    lerp(R.reverse.curl2, R.reverse.curl2 - 7, u),
-      thumb: -22,
-      slide: lerp(0, -R.reverse.slide, u),
-      tilt:  0
+      mirror:true, anchorX:R.reverse.anchorX, pivot:"wrist",
+      arm:  lerp(R.reverse.armBack, R.reverse.armFwd, u),
+      flex: R.reverse.curl
     });
   },
-  tape(ctx, view, t){
-    // The weight shift: a short horizontal double arrow at the forearm.
-    const y = SIDE.floorY - 118, x0 = 156, x1 = 226;
-    tapeStyle(ctx, W_TAPE);
-    poly(ctx, [V(x0, y), V(x1, y)]);
+  tape(ctx){
+    const y = SIDE.floorY - 126, x0 = 148, x1 = 232;
+    tapeStyle(ctx);
+    line(ctx, V(x0, y), V(x1, y));
     arrowHead(ctx, V(x0, y), 180, 11);
     arrowHead(ctx, V(x1, y), 0, 11);
   },
-  note:["Side view, mirrored. Back of the hand down, fingertips point back.",
-        ["forearm sway", `${R.reverse.armBack} deg -> ${R.reverse.armFwd} deg (local frame, mirrored)`],
-        ["finger curl", `f1 ${R.reverse.curl1} deg, f2 ${R.reverse.curl2} deg — NEGATIVE = tips rise, the palm-up cue`],
-        ["knuckle row", `x${R.reverse.riseScale} compressed, fan ${R.reverse.fan} deg per finger`],
-        ["heel slide", `${R.reverse.slide} px`],
-        ["tape", `70 px double arrow, 118 px above the floor`]]
+  note:["Profile, mirrored. Back of the hand down, fingertips pointing back.",
+        ["forearm sway", `${R.reverse.armBack} deg -> ${R.reverse.armFwd} deg`],
+        ["finger flex", `${R.reverse.curl} deg — NEGATIVE lifts the tips, the palm-up cue`],
+        ["hand", `rigid apart from that constant flex`],
+        ["tape", `84 px double arrow, 126 px above the floor`]]
 },
 {
   id:"pulls", name:"Finger pulls", dur:R.pulls.dur, views:["top","side"],
   keys:[0.17, 0.50, 0.84],
   /** Three groups take turns: index+middle, ring+pinky, then the thumb. */
   group(t){
-    const step = t * 3;
-    const which = Math.floor(step) % 3;
-    return {which, u: pingPong(step - Math.floor(step))};
+    const step = t * 3, which = Math.floor(step) % 3;
+    return { which, u: pingPong(step - Math.floor(step)) };
   },
   pose(view, t){
-    const {which, u} = this.group(t);
+    const g = this.group(t);
     if (view === "top") return {
-      rot:0, dx:0, dy:0, spread:11,
-      pulls: [which===0?u:0, which===0?u:0, which===1?u:0, which===1?u:0],
-      thumbPull: which===2 ? u : 0
+      rot:0, dx:0, dy:0, spread:2,
+      pulls: [g.which===0?g.u:0, g.which===0?g.u:0, g.which===1?g.u:0, g.which===1?g.u:0],
+      thumbPull: g.which===2 ? g.u : 0
     };
-    // Side view cannot tell index from ring, so it shows ONE group pulling
-    // back out of the flat group — extension, not flexion.
-    const back = -R.pulls.sideShorten * u;
-    return flat({
-      f1: which===2 ? -4 : lerp(-4, back, 1),
-      f2: which===2 ? 7  : lerp(7, 16, u),
-      thumb: which===2 ? lerp(-2, -38, u) : -2,
-      arm: 216
-    });
+    // Profile cannot tell index from ring, so it bends the whole group back out
+    // of flat — extension, which is what the stretch actually is.
+    return flat({ flex: g.which === 2 ? 0 : -R.pulls.sideBack * g.u });
   },
   tape(ctx, view, t){
-    const {which, u} = this.group(t);
-    tapeStyle(ctx, W_TAPE);
+    const g = this.group(t);
+    tapeStyle(ctx);
     if (view === "top"){
-      const x = which===0 ? S/2 - 22 : which===1 ? S/2 + 24 : S/2 - 54;
-      const y = TOP.wristY - TOP.palmLen - 52;
-      poly(ctx, [V(x, y), V(x, y + 30)]);
-      arrowHead(ctx, V(x, y + 30), 90, 11);   // "pull toward the wrist"
+      const x = g.which===0 ? S/2 - 26 : g.which===1 ? S/2 + 26 : S/2 - 64;
+      const y = TOP.wristY - TOP.palmLen - 56;
+      line(ctx, V(x, y), V(x, y + 32));
+      arrowHead(ctx, V(x, y + 32), 90, 11);    // pull back toward the wrist
       return;
     }
-    const y = SIDE.floorY - 68;
-    poly(ctx, [V(214, y), V(168, y)]);
-    arrowHead(ctx, V(168, y), 180, 11);
+    const y = SIDE.floorY - 84;
+    line(ctx, V(228, y), V(180, y));
+    arrowHead(ctx, V(180, y), 180, 11);
   },
-  note:["Top-down. Groups take turns: index+middle, ring+pinky, thumb.",
+  note:["Top-down. Groups take turns: index+middle, then ring+pinky, then the thumb.",
         ["cycle", `3 groups x ${(R.pulls.dur/3).toFixed(2)} s, ping-pong within each`],
-        ["shorten", `x${(1-R.pulls.shorten).toFixed(2)} of resting finger length (foreshortening)`],
-        ["tip curl", `${R.pulls.curl} deg, away from the hand centre line`],
-        ["side variant", `finger group rotates to ${-R.pulls.sideShorten} deg = extension`]]
+        ["pull back", `${R.pulls.pullBack} deg of extra curl away from the palm`],
+        ["foreshorten", `x${(1-R.pulls.shorten).toFixed(2)} of resting length`],
+        ["side variant", `the whole group flexes to -${R.pulls.sideBack} deg = extension`]]
 }
 ];
 
@@ -663,28 +690,49 @@ const EXERCISES = [
 function drawExercise(ctx, ex, t, view, showTape){
   ctx.clearRect(0, 0, S, S);
   if (view === "side") floorLine(ctx, SIDE.floorY);
-  if (showTape) ex.tape(ctx, view, t);          // tape sits UNDER the chalk
   const pose = ex.pose(view, t);
   if (view === "side") sideHand(ctx, pose); else topHand(ctx, pose);
+  if (showTape) ex.tape(ctx, view, t);       // ON TOP: the fill would hide it
 }
 
 /** views[0] is the exercise's preferred framing; the toggle flips to views[1]. */
-function viewFor(ex, flipped){
-  return ex.views[flipped && ex.views.length > 1 ? 1 : 0];
-}
+const viewFor = (ex, flipped) => ex.views[flipped && ex.views.length > 1 ? 1 : 0];
 
 /* ---- state ---- */
 const state = { speed:1, tape:true, flipped:false, frozen:false };
-const grid = document.getElementById("grid");
-let live = [];      // {ex, ctx}
+const grid  = document.getElementById("grid");
+let live = [];
 
-function makeCanvas(px){
+function makeCanvas(px, cls){
   const c = document.createElement("canvas");
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  c.width = px * dpr; c.height = px * dpr;   // display size comes from CSS
+  c.width = Math.round(px * dpr); c.height = Math.round(px * dpr);
+  if (cls) c.className = cls;                 // display size comes from CSS
   const ctx = c.getContext("2d");
-  ctx.scale(c.width / S, c.height / S);           // logical 300x300 always
+  ctx.scale(c.width / S, c.height / S);       // logical 300 x 300 always
   return {c, ctx};
+}
+
+/* ---- the legibility ruler ---- */
+const RULER_SIZES = [320, 160, 80];
+function buildRuler(){
+  const host = document.getElementById("ruler");
+  host.innerHTML = "";
+  const restTop  = { rot:0, dx:0, dy:0, spread:2, pulls:[0,0,0,0] };
+  const restSide = flat({ anchorX:100 });
+  for (const which of ["top", "side"]){
+    for (const px of RULER_SIZES){
+      const fig = document.createElement("figure");
+      const {c, ctx} = makeCanvas(px, "s" + px);
+      ctx.clearRect(0, 0, S, S);
+      if (which === "side"){ floorLine(ctx, SIDE.floorY); sideHand(ctx, restSide); }
+      else                 { topHand(ctx, restTop); }
+      const cap = document.createElement("figcaption");
+      cap.textContent = (which === "top" ? "print " : "profile ") + px + " px";
+      fig.append(c, cap);
+      host.append(fig);
+    }
+  }
 }
 
 function build(){
@@ -728,40 +776,42 @@ function frame(now){
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
   clock += dt * state.speed;
-  for (const {ex, ctx, view} of live){
+  for (const {ex, ctx, view} of live)
     drawExercise(ctx, ex, (clock % ex.dur) / ex.dur, view, state.tape);
-  }
   requestAnimationFrame(frame);
 }
 
 /* ---- controls ---- */
-const speedEl = document.getElementById("speed");
-const speedOut= document.getElementById("speedOut");
-const tapeEl  = document.getElementById("tape");
-const viewEl  = document.getElementById("view");
-const staticEl= document.getElementById("static");
+const speedEl  = document.getElementById("speed");
+const speedOut = document.getElementById("speedOut");
+const tapeEl   = document.getElementById("tape");
+const viewEl   = document.getElementById("view");
+const staticEl = document.getElementById("static");
 
-// Controls are driven FROM `state`, so the markup and the state cannot drift.
+// Driven FROM `state`, so the markup and the state cannot drift apart.
 speedEl.value = state.speed;
 speedOut.textContent = state.speed.toFixed(2) + "x";
 tapeEl.checked = state.tape;
 viewEl.checked = state.flipped;
 staticEl.setAttribute("aria-pressed", String(state.frozen));
 
-speedEl.oninput = () => {
+speedEl.oninput  = () => {
   state.speed = parseFloat(speedEl.value);
   speedOut.textContent = state.speed.toFixed(2) + "x";
 };
-tapeEl.onchange = () => { state.tape = tapeEl.checked; if (state.frozen) build(); };
-viewEl.onchange = () => { state.flipped = viewEl.checked; build(); };
+tapeEl.onchange  = () => { state.tape = tapeEl.checked; if (state.frozen) build(); };
+viewEl.onchange  = () => { state.flipped = viewEl.checked; build(); };
 staticEl.onclick = () => {
   state.frozen = !state.frozen;
   staticEl.setAttribute("aria-pressed", String(state.frozen));
-  speedEl.closest(".ctl").classList.toggle("off", state.frozen);  // speed is moot when frozen
+  speedEl.closest(".ctl").classList.toggle("off", state.frozen);
   build();
 };
 
 /* ---- the geometry note ---- */
+function pad(k, v){ return "  " + (k + "  ").padEnd(30, ".") + "  " + v + "\n"; }
+const NAMES = ["index","middle","ring","pinky"];
+
 function renderNotes(){
   const el = document.getElementById("notes");
   const head = document.createElement("h2");
@@ -769,45 +819,52 @@ function renderNotes(){
   const lede = document.createElement("p");
   lede.className = "lede";
   lede.textContent =
-    "All numbers are in a 300 x 300 logical box, y down, angles in degrees measured " +
-    "from +x toward +y. Scale linearly for any canvas size; stroke weights scale with it.";
+    "All numbers are in a 300 x 300 logical box, y down, angles in degrees from " +
+    "+x toward +y. Widths are HALF-widths of a filled shape, not stroke weights — " +
+    "nothing here is stroked except the floor line and the tape. Scale linearly.";
   el.append(head, lede);
 
   const prim = document.createElement("pre");
   prim.innerHTML =
     "<b>SHARED</b>\n" +
     pad("canvas", "300 x 300 logical, y down") +
-    pad("stroke: palm / forearm", W_MAIN + " px") +
-    pad("stroke: fingers + thumb", W_FINGER + " px") +
-    pad("stroke: floor line", W_FLOOR + " px @ 50% alpha") +
-    pad("stroke: tape", W_TAPE + " px") +
-    pad("caps / joins", "round, flat colour, no gradient") +
-    "\n<b>SIDE-VIEW HAND</b>  (heel at origin, palm axis +x, body toward -y)\n" +
-    pad("palm", SIDE.palmLen + " long x " + SIDE.palmThick + " deep (heel end x0.80), corner r " + SIDE.palmRound) +
-    pad("projection skew", SIDE.skew + " px along the palm per px into the page") +
-    pad("finger segments", SIDE.f1 + " + " + SIDE.f2 + " = " + (SIDE.f1+SIDE.f2) + " px, split 57% / 43%") +
-    pad("knuckle row (i/m/r/p)", SIDE.fingerRise.join(" / ") + " px into the page") +
-    pad("finger length (i/m/r/p)", SIDE.fingerLen.map(v=>"x"+v.toFixed(2)).join(" / ")) +
-    pad("fan correction", "swing back = atan(rise x " + SIDE.fingerDrop + " / length); far fingers stay high") +
-    pad("thumb", "x" + SIDE.thumbLen.toFixed(2) + " finger length, rooted " + (SIDE.thumbAt*100) + "% along the palm, rise " + SIDE.thumbRise + ", splay " + SIDE.thumbSplay + " deg") +
-    pad("forearm stub", SIDE.armLen + " long x " + SIDE.armThick + " thick, rounded cap") +
-    pad("floor line", "y = " + SIDE.floorY) +
-    "\n<b>TOP-DOWN HAND</b>  (wrist line at origin, fingers toward -y)\n" +
-    pad("palm", TOP.palmLen + " long, " + TOP.palmW + " across knuckles, " + TOP.wristW + " at wrist, corner r " + TOP.palmRound) +
-    pad("fingers (i/m/r/p)", TOP.fingers.join(" / ") + " px, split 58% + 46% at the mid joint") +
-    pad("resting spread", TOP.spread + " deg between adjacent fingers") +
-    pad("finger bow", TOP.bow + " px sideways, scaled by distance from centre") +
-    pad("thumb", TOP.thumbLen + " px, segments at " + TOP.thumbA1 + " deg then " + TOP.thumbA2 + " deg") +
-    pad("forearm stub", TOP.armLen + " px, 2 rails " + (TOP.wristW*0.92).toFixed(1) + " px apart, capped") +
-    pad("wrist line", "y = " + TOP.wristY);
+    pad("fill", CHALK + " solid on " + FLOOR + " — no outline, no gradient") +
+    pad("digit", "quadratic Bezier spine: half the length straight, then bending by `curl`") +
+    pad("digit width", "lerp(base -> base x tipW) along s, domed from s = " + CAP_FROM) +
+    pad("digit tesselation", DIGIT_STEPS + " steps — smooth well past 320 px") +
+    pad("compositing", "each part is its OWN fill — one combined path CANCELS where windings oppose") +
+    pad("stroke: floor line", W_FLOOR + " px @ 45% alpha") +
+    pad("stroke: tape", W_TAPE + " px, drawn OVER the fill") +
+    "\n<b>TOP-DOWN PRINT</b>  (wrist line at origin, fingers toward -y)\n" +
+    pad("palm", TOP.palmLen + " long, " + TOP.knuckW + " across the knuckles, " + TOP.wristW + " at the wrist") +
+    pad("palm shape", "4 cubics; knuckle edge bows " + TOP.knuckBow + " px out, thenar " + TOP.thenar + " px, hypothenar " + TOP.hypo + " px") +
+    TOP.fingers.map((f, i) => pad(NAMES[i],
+      "len " + f.len + ", half-width " + f.w + ", angle " + f.ang + " deg, base " + f.at + " x knuckW")).join("") +
+    pad("fingertip", "x" + TOP.tipW + " of the base half-width; resting curl " + TOP.curl + " deg") +
+    pad("thumb", "len " + TOP.thumb.len + ", half-width " + TOP.thumb.w + " (the THICKEST digit), " +
+        (270 - TOP.thumb.ang) + " deg off the palm axis") +
+    pad("forearm", "half-width " + TOP.armW[0] + " -> " + TOP.armW[1] + " over " + TOP.armRamp + " px, then off-canvas") +
+    pad("wrist line", "y = " + TOP.wristY) +
+    "\n<b>PROFILE PRINT</b>  (heel at origin, floor along +x, body toward -y)\n" +
+    pad("palm", SIDE.palmLen + " long, " + SIDE.heelH + " deep at the heel, " + SIDE.knuckH + " at the knuckles") +
+    pad("palm shape", "flat floor edge; the back of the hand domes " + SIDE.archLift + " px above the straight line") +
+    SIDE.fingers.map((f, i) => pad(NAMES[i],
+      "len " + f.len + ", half-width " + f.w + ", rise " + f.rise + ", angle " + f.ang + " deg")).join("") +
+    pad("why the rise", "stacking them " + (SIDE.fingers[3].rise - SIDE.fingers[0].rise) +
+        " px gives the mass depth; filled shapes MERGE, they do not fork") +
+    pad("fingertip", "x" + SIDE.tipW + " of the base half-width; resting curl " + SIDE.curl + " deg") +
+    pad("thumb", "len " + SIDE.thumb.len + ", half-width " + SIDE.thumb.w + ", rise " + SIDE.thumb.rise +
+        ", angle " + SIDE.thumb.ang + " deg (up off the palm)") +
+    pad("forearm", "half-width " + SIDE.armW[0] + " -> " + SIDE.armW[1] + " over " + SIDE.armRamp + " px, then off-canvas") +
+    pad("floor line", "y = " + SIDE.floorY);
   el.append(prim);
 
   for (const ex of EXERCISES){
     const pre = document.createElement("pre");
     let s = "<b>" + ex.name.toUpperCase() + "</b>   views: " + ex.views.join(" + ") +
-            "   cycle: " + ex.dur.toFixed(2) + " s   keys: t = " + ex.keys.map(k=>k.toFixed(2)).join(", ") + "\n" +
-            ex.note[0] + "\n";
-    for (let i=1;i<ex.note.length;i++) s += pad(ex.note[i][0], ex.note[i][1]);
+            "   cycle: " + ex.dur.toFixed(2) + " s   keys: t = " +
+            ex.keys.map(k => k.toFixed(2)).join(", ") + "\n" + ex.note[0] + "\n";
+    for (let i = 1; i < ex.note.length; i++) s += pad(ex.note[i][0], ex.note[i][1]);
     pre.innerHTML = s;
     el.append(pre);
   }
@@ -815,17 +872,16 @@ function renderNotes(){
   const tail = document.createElement("pre");
   tail.innerHTML =
     "<b>MOTION</b>\n" +
-    pad("ping-pong", "u = easeInOut(1 - |2t - 1|)  — every press/rock/pull uses this") +
+    pad("rule", "the silhouette is rigid — one rotation about one joint, then a translate") +
+    pad("exception", "fingertip press and finger pulls flex the digits; nothing else does") +
+    pad("flex split", "a flex is " + SIDE.flexToCurl + " as strong at the second joint as at the knuckle") +
+    pad("ping-pong", "u = easeInOut(1 - |2t - 1|)  — every press, rock and pull uses this") +
     pad("orbit", "a = 360 deg x t  — wrist circles only, continuous, never reverses mid-cycle") +
-    pad("easing", "easeInOut(t) = t<0.5 ? 2t^2 : 1 - (-2t+2)^2 / 2") +
-    pad("interpolation", "poses are keyframe dictionaries; every field lerps independently");
+    pad("easing", "easeInOut(t) = t<0.5 ? 2t^2 : 1 - (-2t+2)^2 / 2");
   el.append(tail);
 }
-function pad(k, v){
-  const key = (k + "  ").padEnd(30, ".");
-  return "  " + key + "  " + v + "\n";
-}
 
+buildRuler();
 build();
 renderNotes();
 requestAnimationFrame(frame);
