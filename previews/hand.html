@@ -71,13 +71,13 @@
   .grid.frames .frame canvas{width:268px;height:268px}
   .grid.frames .frame span{font-size:10px;color:var(--dim);margin-top:2px;font-variant-numeric:tabular-nums}
 
-  /* Narrow windows: two scaled columns beat one tall column you must scroll
-     to compare. The canvas bitmap is unchanged — only its CSS box shrinks. */
   /* A sticky bar that wraps to three rows can eat most of a short window.
      Below these thresholds it scrolls away with everything else. */
   @media (max-width:800px), (max-height:760px){
     header{position:static}
   }
+  /* Narrow windows: two scaled columns beat one tall column you must scroll
+     to compare. The canvas bitmap is unchanged — only its CSS box shrinks. */
   @media (max-width:800px){
     .grid{gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
     .card canvas{width:100%;height:auto;aspect-ratio:1}
@@ -103,23 +103,23 @@
 
 <header>
   <div class="bar">
-    <h1>Wrist ritual — chalk handprints<small>filled silhouettes · parametric · portable to SwiftUI Canvas</small></h1>
+    <h1>Wrist ritual — chalk handprints<small>filled silhouettes · one anatomy, two projections · portable to SwiftUI Canvas</small></h1>
     <div class="ctl">
       <label for="speed">Speed</label>
       <input id="speed" type="range" min="0.5" max="2" step="0.05" value="1">
       <b id="speedOut">1.00x</b>
     </div>
     <div class="ctl"><label><input id="tape" type="checkbox" checked> Tape motion hints</label></div>
-    <div class="ctl"><label><input id="view" type="checkbox"> Alternate view (top-down &#8644; side)</label></div>
+    <div class="ctl"><label><input id="view" type="checkbox"> Alternate view (top-down &#8644; 3/4)</label></div>
     <button id="static" aria-pressed="false">Static frames</button>
   </div>
 </header>
 
 <section class="sizes">
   <h2>Does it still read as a hand?</h2>
-  <p>The same two silhouettes at 320, 160 and 80 px. 80 px is about the size a
-     preview thumbnail runs at, and it is the only one that settles whether the
-     anatomy works — everything reads at 320.</p>
+  <p>The same anatomy in both projections, at 320, 160 and 80 px. 80 px is about
+     the size a preview thumbnail runs at, and it is the only one that settles
+     whether the anatomy works — everything reads at 320.</p>
   <div class="ruler" id="ruler"></div>
 </section>
 
@@ -130,22 +130,26 @@
 <script>
 "use strict";
 /* ============================================================================
-   Upright — wrist-ritual hand studies, iteration 2.
+   Upright — wrist-ritual hand studies, iteration 3.
 
-   ITERATION 1 DREW OUTLINES AND EVERY HAND CAME OUT A FORK. Four stroked
-   finger lines side by side read as tines, not fingers, at any weight: the eye
-   gets four near-identical parallel bars and no mass. This version draws the
-   hand as a FILLED SILHOUETTE — a chalk handprint. Filled shapes that overlap
-   MERGE instead of forking, which is what turns four separate finger shapes
-   into one hand, and it is the only reason the profile view works at all.
+   ITERATION 1 drew OUTLINES and every hand came out a fork: four stroked lines
+   side by side read as tines, not fingers. Iteration 2 switched to FILLED
+   silhouettes, which merge on overlap instead of forking — that fixed the
+   top-down print, and the print below is unchanged from it.
 
-   Still fully parametric: a digit is a quadratic-Bezier spine swept by a width
-   function, a palm is a closed Bezier blob. No bitmaps, no imported paths —
-   every number below is a length, an angle or a width, so the geometry ports
-   to SwiftUI Canvas verbatim.
+   ITERATION 2's SIDE VIEW WAS A PURE PROFILE AND COLLAPSED INTO A BLOB. A hand
+   seen edge-on has no palm width and no finger separation left to show, and
+   the forearm — the only thing with any size — takes over the frame. So the
+   side view is now a 3/4: camera 30 degrees above the floor, hand turned 38
+   degrees away from square-on.
 
-   Coordinate space: 300 x 300, y DOWN. Angles are degrees measured from +x
-   rotating toward +y (so a positive angle points "down-screen").
+   The important part is that the 3/4 view is NOT a second set of hand drawings.
+   It is the SAME anatomy data (TOP, below) pushed through an axonometric
+   projection, so the fingers that read well from above are literally the same
+   fingers seen from another angle. Only the camera and the pose differ.
+
+   Coordinate space: 300 x 300 logical, y DOWN. Angles in degrees measured from
+   +x toward +y (so a positive angle points "down-screen").
    ========================================================================== */
 
 /* ---- tokens (DESIGN.md §2) ---------------------------------------------- */
@@ -153,11 +157,10 @@ const CHALK = "#F4F1E8";
 const FLOOR = "#171310";
 const TAPE  = "#FFB520";
 const S     = 300;          // logical canvas edge
-const W_TAPE  = 5.0;
-const W_FLOOR = 2.6;
+const W_TAPE = 5.0;
 
-/* ---- the handprint seen from above --------------------------------------
-   Local frame: wrist line centred on the origin, fingers toward -y.
+/* ---- THE anatomy, shared by both projections -----------------------------
+   Local frame: wrist line centred on the origin, fingers toward -y, x across.
    `at` is a fraction of the knuckle width, so the knuckle row scales with the
    palm. The lengths are deliberately unequal: equal fingers are the single
    biggest reason a hand reads as a fork or a garden rake. */
@@ -177,47 +180,48 @@ const TOP = {
   tipW:      0.60,  // fingertip half-width, x the base half-width
   curl:      7,     // resting bend along a finger, degrees
   thumb: { at:-0.46, up:0.34, ang:214, len:54, w:14.0, tipW:0.70, curl:16 },
-  armW:     [15, 20], armRamp: 70,   // wrist half-width -> forearm half-width
+  armW:     [15, 20], armRamp: 70,   // top-down forearm half-widths
   wristY:    206
 };
 
-/* ---- the handprint in profile -------------------------------------------
-   Local frame: heel of the palm at the origin, the floor along +x, the hand
-   body toward -y. The fingers are stacked a few px apart so the filled mass
-   gains depth; they merge rather than fork, which is the whole point. */
-const SIDE = {
-  palmLen:   80,    // heel -> knuckles along the floor
-  heelH:     45,    // palm depth at the heel — the thickest point
-  knuckH:    35,    // palm depth at the knuckles
-  archLift:  5,     // how far the back of the hand domes above the straight line
-  // The rises stack the fingers for depth, but the stack must stay SHALLOWER
-  // than the palm or the whole thing reads as a mitten instead of a hand.
-  fingers: [        // index (nearest the floor) .. pinky (furthest back)
-    { rise: 7,  ang: 0,  len:58, w:8.8 },
-    { rise:12,  ang:-2,  len:66, w:9.2 },
-    { rise:17,  ang:-4,  len:59, w:8.6 },
-    { rise:21,  ang:-7,  len:45, w:7.4 }
-  ],
-  tipW:      0.62,
-  curl:      5,
-  flexToCurl: 0.45,  // how much of a flex reaches the second joint
-  // In a strict profile the thumb of a planted hand is almost entirely
-  // occluded. Cocking it up off the back of the hand at the knuckle end is
-  // the only placement that reads as a thumb rather than as a lumpy palm.
-  thumb: { at:0.70, rise:27, ang:-44, len:40, w:12.5, tipW:0.76, curl:15 },
-  armW:     [13, 18], armRamp: 76,
-  floorY:    222
+/* ---- the 3/4 camera ------------------------------------------------------
+   An orthographic axonometric. `elev` is how far the camera sits above the
+   floor; `azim` is how far the hand is turned away from square-on to it.
+
+     azim 0   -> the hand points straight across the view: that is the pure
+                 profile, where the palm has no width left and the fingers
+                 stack into one blob. This is what iteration 2 did.
+     azim 90  -> the hand points straight away: the top-down view, squashed.
+     azim 38  -> both axes project to clearly different screen directions, so
+                 palm width AND finger separation survive, and the forearm
+                 still rises visibly out of the floor to show the wrist angle.
+
+   The forearm is deliberately thin and tapering AWAY from the wrist: it is a
+   reference for the wrist angle, not a subject. */
+const Q34 = {
+  elev:     30,
+  azim:     38,
+  scale:    1.38,   // hand ends up ~64% of the card wide (the brief asks 60%+)
+  originX:  96, originY: 208,   // where the wrist lands: the hand runs up-right,
+                                // so the wrist sits left of centre to leave the
+                                // forearm somewhere to go before it crops
+  armRise:  38,     // default forearm angle above the floor
+  armLen:   380,    // long enough to leave the card at any angle
+  armW:     0.60,   // forearm width at the wrist, x the palm's wrist width
+  armTaper: 0.58,   // far end x near end — it recedes, it never flares
+  armInset: 16,     // how far the band starts inside the palm, to hide the join
+  ghost:    0.20    // opacity of the start-pose silhouette
 };
 
 /* ---- per-exercise motion (every number the note prints) ------------------ */
 const R = {
   circles: { dur:3.0, orbitX:18, orbitY:11, spin:10, tapeRX:44, tapeRY:25,
-             sideTilt:7, sideArm:14 },
-  rocks:   { dur:2.6, armBack:200, armFwd:254, arcR:98, anchorX:104 },
-  press:   { dur:2.4, heelLift:15, armFollow:-5 },
-  tips:    { dur:2.2, curlHigh:62, curlLow:50, tiltHigh:22, tiltLow:13, fan:-7 },
-  reverse: { dur:2.8, armBack:250, armFwd:272, curl:-14, anchorX:198 },
-  pulls:   { dur:3.3, pullBack:38, shorten:0.14, sideBack:34 }
+             qOrbit:24, qSpin:5, qArm:9 },
+  rocks:   { dur:2.6, armBack:20, armFwd:64 },
+  press:   { dur:2.4, heelLift:17 },
+  tips:    { dur:2.2, curlHigh:21, curlLow:13, fan:-3, tiltHigh:11, tiltLow:5 },
+  reverse: { dur:2.8, armBack:26, armFwd:52, curl:16, offA:118 },
+  pulls:   { dur:3.3, pullBack:38, shorten:0.14, qBack:30 }
 };
 
 /* ========================================================================== */
@@ -241,6 +245,11 @@ const qBez = (a,b,c,s) => {
 };
 const qTan = (a,b,c,s) => ({x: 2*(1-s)*(b.x-a.x) + 2*s*(c.x-b.x),
                             y: 2*(1-s)*(b.y-a.y) + 2*s*(c.y-b.y)});
+const cBez = (p0,c1,c2,p1,s) => {
+  const m = 1-s;
+  return {x: m*m*m*p0.x + 3*m*m*s*c1.x + 3*m*s*s*c2.x + s*s*s*p1.x,
+          y: m*m*m*p0.y + 3*m*m*s*c1.y + 3*m*s*s*c2.y + s*s*s*p1.y};
+};
 
 /* easing / cycling */
 const tri       = t => 1 - Math.abs(2*t - 1);      // 0 -> 1 -> 0
@@ -249,24 +258,34 @@ const pingPong  = t => easeInOut(tri(t));
 const TAU = Math.PI * 2;
 
 /* ========================================================================== */
-/* the two primitives everything is built from                                */
+/* the primitives                                                             */
 /* ========================================================================== */
 
 /**
+ * Every part of the hand is filled as its OWN path. Building them into one
+ * path and filling once is tempting, but the palm winds one way and a digit
+ * winds the other, and fill()'s nonzero rule then CANCELS them where they
+ * overlap — which punches black slots into the palm between the fingers.
+ * Separate fills of one colour always union, whatever anything winds.
+ */
+function fillPoly(ctx, pts){
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
  * A digit: a quadratic-Bezier spine swept by a width that tapers base -> tip
- * and then domes over into a round fingertip.
- *
- * Each part of the hand is filled as its OWN path. Building them into one path
- * and filling once is tempting, but the palm winds one way and a digit winds
- * the other, and fill()'s nonzero rule then CANCELS them where they overlap —
- * which punches black slots into the palm between the fingers. Separate fills
- * of the same colour always union, whatever direction anything winds in.
+ * and then domes over into a round fingertip. Returns the outline as points,
+ * so the 3/4 view can project them instead of drawing them flat.
  *
  * The base end is left square: it always sits inside the palm blob.
  */
 const DIGIT_STEPS = 22;
 const CAP_FROM    = 0.84;          // where the tip starts doming over
-function fillDigit(ctx, base, ang, len, wBase, tipW, curl){
+function digitOutline(base, ang, len, wBase, tipW, curl){
   // Spine: half the length straight out of the knuckle, then bending by `curl`.
   const mid = add(base, dir(ang, len * 0.5));
   const tip = add(mid,  dir(ang + curl, len * 0.5));
@@ -287,18 +306,46 @@ function fillDigit(ctx, base, ang, len, wBase, tipW, curl){
     left.push({x: p.x + n.x*w, y: p.y + n.y*w});
     right.push({x: p.x - n.x*w, y: p.y - n.y*w});
   }
-  ctx.beginPath();
-  ctx.moveTo(left[0].x, left[0].y);
-  for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y);
-  for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
-  ctx.closePath();
-  ctx.fill();
+  right.reverse();
+  return left.concat(right);
+}
+function fillDigit(ctx, base, ang, len, wBase, tipW, curl){
+  fillPoly(ctx, digitOutline(base, ang, len, wBase, tipW, curl));
+}
+/** Where a digit's spine ends — the fingertip, used as a pivot. */
+function digitTip(base, ang, len, curl){
+  const mid = add(base, dir(ang, len * 0.5));
+  return add(mid, dir(ang + curl, len * 0.5));
+}
+
+/** The palm outline, as Bezier data in the anatomy's own frame. */
+function palmSpec(){
+  const P = TOP, kY = -P.palmLen, hw = P.knuckW/2, ww = P.wristW/2;
+  return {
+    start: V(-hw, kY),
+    segs: [
+      { c1: V(-hw*0.45, kY - P.knuckBow), c2: V(hw*0.45, kY - P.knuckBow), to: V(hw, kY) },
+      { c1: V(hw + P.hypo*0.5, kY*0.62),  c2: V(ww + P.hypo, kY*0.24),     to: V(ww, 0)  },
+      { c1: V(ww*0.4, 6),                 c2: V(-ww*0.4, 6),               to: V(-ww, 0) },
+      { c1: V(-ww - P.thenar, kY*0.28),   c2: V(-hw - P.thenar*0.5, kY*0.70), to: V(-hw, kY) }
+    ]
+  };
+}
+/** The same outline as points, for projection. */
+function palmOutline(steps){
+  const spec = palmSpec(), pts = [];
+  let p0 = spec.start;
+  for (const sg of spec.segs){
+    for (let i = 1; i <= steps; i++) pts.push(cBez(p0, sg.c1, sg.c2, sg.to, i/steps));
+    p0 = sg.to;
+  }
+  return pts;
 }
 
 /**
- * The forearm: a straight band that widens over `ramp` px then runs on at
- * constant width until it leaves the canvas. Running it off the edge is what
- * makes it read as a cropped arm rather than a severed stub.
+ * The top-down forearm: a straight band that widens over `ramp` px then runs
+ * on at constant width until it leaves the canvas. Running it off the edge is
+ * what makes it read as a cropped arm rather than a severed stub.
  */
 function fillArm(ctx, wrist, ang, w0, w1, ramp){
   const long = 460;                        // comfortably past any canvas edge
@@ -308,26 +355,17 @@ function fillArm(ctx, wrist, ang, w0, w1, ramp){
   const b = add(wrist, dir(ang, ramp));
   const c = add(wrist, dir(ang, long));
   const pt = (p, w, side) => ({x: p.x + n.x*w*side, y: p.y + n.y*w*side});
-  ctx.beginPath();
-  let q = pt(a, w0, 1);  ctx.moveTo(q.x, q.y);
-  q = pt(b, w1,  1);     ctx.lineTo(q.x, q.y);
-  q = pt(c, w1,  1);     ctx.lineTo(q.x, q.y);
-  q = pt(c, w1, -1);     ctx.lineTo(q.x, q.y);
-  q = pt(b, w1, -1);     ctx.lineTo(q.x, q.y);
-  q = pt(a, w0, -1);     ctx.lineTo(q.x, q.y);
-  ctx.closePath();
-  ctx.fill();
+  fillPoly(ctx, [pt(a,w0,1), pt(b,w1,1), pt(c,w1,1), pt(c,w1,-1), pt(b,w1,-1), pt(a,w0,-1)]);
 }
 
 /* ========================================================================== */
-/* TOP-DOWN HANDPRINT                                                         */
+/* TOP-DOWN HANDPRINT — unchanged from iteration 2                            */
 /*                                                                            */
 /* pose = { rot, dx, dy, spread, pulls:[i,m,r,p], thumbPull }                  */
 /* ========================================================================== */
 function topHand(ctx, pose){
   const P = TOP;
   const knuckY = -P.palmLen;
-  const hw = P.knuckW / 2, ww = P.wristW / 2;
   const rot = pose.rot || 0;
 
   const place = p => {
@@ -343,19 +381,14 @@ function topHand(ctx, pose){
 
   // --- palm: a blob. Wide at the knuckles, narrow at the wrist, thenar
   //     bulge on the thumb side. Four cubics, not one straight edge.
-  const kL = T(-hw, knuckY), kR = T(hw, knuckY);
-  const wL = T(-ww, 0),      wR = T(ww, 0);
-  let c1, c2;
+  const spec = palmSpec();
+  let q = place(spec.start);
   ctx.beginPath();
-  ctx.moveTo(kL.x, kL.y);
-  c1 = T(-hw*0.45, knuckY - P.knuckBow); c2 = T(hw*0.45, knuckY - P.knuckBow);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, kR.x, kR.y);      // knuckle edge
-  c1 = T(hw + P.hypo*0.5, knuckY*0.62);  c2 = T(ww + P.hypo, knuckY*0.24);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, wR.x, wR.y);      // little-finger side
-  c1 = T(ww*0.4, 6); c2 = T(-ww*0.4, 6);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, wL.x, wL.y);      // wrist edge
-  c1 = T(-ww - P.thenar, knuckY*0.28);   c2 = T(-hw - P.thenar*0.5, knuckY*0.70);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, kL.x, kL.y);      // thenar side
+  ctx.moveTo(q.x, q.y);
+  for (const sg of spec.segs){
+    const a = place(sg.c1), b = place(sg.c2), c = place(sg.to);
+    ctx.bezierCurveTo(a.x, a.y, b.x, b.y, c.x, c.y);
+  }
   ctx.closePath();
   ctx.fill();
 
@@ -380,87 +413,142 @@ function topHand(ctx, pose){
 }
 
 /* ========================================================================== */
-/* PROFILE HANDPRINT                                                          */
+/* 3/4 VIEW — the same anatomy, projected                                     */
 /*                                                                            */
-/* pose = { pivot:'wrist'|'knuckle'|'tip', rot, arm, anchorX, lift, slide,     */
-/*          flex (extra bend at every knuckle), mirror }                       */
+/* Three coordinates:                                                         */
+/*   a  along the hand, wrist -> fingertips  (= -localY)                      */
+/*   b  across the hand, thumb side negative (=  localX)                      */
+/*   z  height above the floor                                                */
+/*                                                                            */
+/* pose = { rot, pivotA, flip, lift, offA, offB, arm,                         */
+/*          flex:[i,m,r,p], thumbFlex }                                       */
+/*   rot     rotates the whole rigid hand about the across-axis at `pivotA`   */
+/*           — positive lifts everything BEHIND the pivot off the floor       */
+/*   flex    bends one digit down at its knuckle, out of the hand's plane     */
+/*   flip    180 deg about the across-axis: palm up, fingers pointing back    */
 /* ========================================================================== */
-function sideHand(ctx, pose){
-  const P = SIDE;
-  const m  = pose.mirror ? -1 : 1;
-  const mx = p => ({x: p.x * m, y: p.y});
-
-  const heel  = V(0, 0);
-  const knuck = V(P.palmLen, 0);
-  const wrist = V(-2, -P.heelH * 0.50);
-  const flex  = pose.flex || 0;
-
-  // Where the index finger ends, before placement — the fingertip-press pivot.
-  const tipOfIndex = (() => {
-    const f = P.fingers[0];
-    const fx = flex + (pose.fanFlex || 0) * (0 - 1.5);
-    const a = f.ang + fx;
-    const mid = add(V(P.palmLen, -f.rise), dir(a, f.len * 0.5));
-    return add(mid, dir(a + P.curl + fx * P.flexToCurl, f.len * 0.5));
-  })();
-
-  const pivot = pose.pivot === "knuckle" ? knuck
-              : pose.pivot === "tip"     ? tipOfIndex
-              : wrist;
-  const target = V(pose.anchorX + (pose.slide || 0), P.floorY - (pose.lift || 0));
-
-  // The silhouette is RIGID: one rotation about one joint, then one translate.
-  const place = p => {
-    const r = rotAbout(mx(p), mx(pivot), pose.rot * m);
-    return V(r.x - mx(pivot).x + target.x, r.y - mx(pivot).y + target.y);
+const BAS = (() => {
+  const E = rad(Q34.elev), A = rad(Q34.azim), k = Q34.scale;
+  return {
+    eA: { x:  Math.cos(A) * k, y: -Math.sin(A) * Math.sin(E) * k },  // per unit along
+    eB: { x: -Math.sin(A) * k, y: -Math.cos(A) * Math.sin(E) * k },  // per unit across
+    eH: { x: 0,                y: -Math.cos(E) * k }                 // per unit height
   };
-  // A local angle taken into world space, mirror and hand rotation included.
-  const worldAng = a => a * m + pose.rot * m + (m < 0 ? 180 : 0);
+})();
 
+/** Bend about the across-axis at `pivotA`. Positive sends `a > pivotA` down. */
+function bendAZ(a, z, pivotA, ang){
+  if (!ang) return {a, z};
+  const c = Math.cos(rad(ang)), s = Math.sin(rad(ang)), da = a - pivotA;
+  return { a: pivotA + da*c + z*s, z: -da*s + z*c };
+}
+/** The whole-hand transform: flip, then rigid rotation, then lift. */
+function poseAZ(a, z, pose){
+  if (pose.flip){ a = -a; z = -z; }
+  const r = bendAZ(a, z, pose.pivotA, pose.rot);
+  return { a: r.a, z: r.z + pose.lift };
+}
+function toScreen(a, b, z, pose){
+  const A = a + (pose.offA || 0), B = b + (pose.offB || 0);
+  return {
+    x: Q34.originX + A*BAS.eA.x + B*BAS.eB.x + z*BAS.eH.x,
+    y: Q34.originY + A*BAS.eA.y + B*BAS.eB.y + z*BAS.eH.y
+  };
+}
+/**
+ * A digit hinge. A finger bends about an axis perpendicular to ITSELF, not to
+ * the hand — hinge a splayed finger about the hand's across-axis and its own
+ * width gets swept through the rotation too, which shears it into a spike.
+ * Built once per digit from its base and its direction in the flat frame.
+ */
+function digitBend(baseLocal, angDeg, ang){
+  return {
+    bA: -baseLocal.y, bB: baseLocal.x,                   // base, in (a, b)
+    uA: -Math.sin(rad(angDeg)), uB: Math.cos(rad(angDeg)), // its own axis
+    ang
+  };
+}
+/** An anatomy-frame point -> card pixels, through an optional digit hinge. */
+function q34(p, pose, bend){
+  let a = -p.y, b = p.x, z = 0;
+  if (bend && bend.ang){
+    const pa = a - bend.bA, pb = b - bend.bB;
+    const du = pa*bend.uA + pb*bend.uB;                 // along the digit
+    const vA = pa - du*bend.uA, vB = pb - du*bend.uB;   // across it, untouched
+    const c = Math.cos(rad(bend.ang)), sn = Math.sin(rad(bend.ang));
+    a = bend.bA + du*c*bend.uA + vA;
+    b = bend.bB + du*c*bend.uB + vB;
+    z = -du*sn;
+  }
+  const g = poseAZ(a, z, pose);
+  return toScreen(g.a, b, g.z, pose);
+}
+
+const EB_LEN = Math.hypot(BAS.eB.x, BAS.eB.y);   // px per unit across the hand
+
+function quarterArm(ctx, pose){
+  const w = poseAZ(0, 0, pose);
+  const away = pose.flip ? 1 : -1;              // the way the elbow lies
+  const th = rad(pose.arm);
+  const nA = w.a - away * Q34.armInset, nZ = w.z;       // start inside the palm
+  const fA = w.a + away * Q34.armLen * Math.cos(th);
+  const fZ = w.z + Q34.armLen * Math.sin(th);
+  const near = toScreen(nA, 0, nZ, pose);
+  const far  = toScreen(fA, 0, fZ, pose);
+
+  // A limb is a cylinder: its silhouette is its true radius wide whichever way
+  // it points, so the band is offset perpendicular to its SCREEN axis. Offset
+  // it along the hand's across-axis instead — the obvious thing to try — and
+  // at this camera the two directions are only 7 degrees apart at rest, so the
+  // whole forearm collapses into a hairline.
+  const dx = far.x - near.x, dy = far.y - near.y;
+  const m = Math.hypot(dx, dy) || 1;
+  const n = { x: -dy/m, y: dx/m };
+  const h0 = TOP.wristW * Q34.armW / 2 * EB_LEN, h1 = h0 * Q34.armTaper;
+  fillPoly(ctx, [
+    { x: near.x + n.x*h0, y: near.y + n.y*h0 },
+    { x: far.x  + n.x*h1, y: far.y  + n.y*h1 },
+    { x: far.x  - n.x*h1, y: far.y  - n.y*h1 },
+    { x: near.x - n.x*h0, y: near.y - n.y*h0 }
+  ]);
+}
+
+function quarterHand(ctx, pose){
+  const P = TOP, knuckY = -P.palmLen, knuckA = P.palmLen;
   ctx.fillStyle = CHALK;
 
-  // --- forearm, rising out of frame from the wrist -----------------------
-  fillArm(ctx, place(wrist), pose.arm * m + (m < 0 ? 180 : 0),
-          P.armW[0], P.armW[1], P.armRamp);
+  quarterArm(ctx, pose);                                   // palm covers the join
+  fillPoly(ctx, palmOutline(12).map(p => q34(p, pose)));
 
-  // --- palm: flat on the floor, domed over the back, thickest at the heel -
-  const B = (x,y) => place(V(x,y));
-  const L = P.palmLen, hH = P.heelH, kH = P.knuckH;
-  let p = B(8, 0), c1, c2;
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
-  p = B(L - 10, 0);                      ctx.lineTo(p.x, p.y);        // floor edge
-  c1 = B(L, 0);      c2 = B(L, -6);   p = B(L, -10);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // front corner
-  p = B(L, -kH + 8);                     ctx.lineTo(p.x, p.y);        // knuckle face
-  c1 = B(L, -kH);    c2 = B(L - 8, -kH); p = B(L - 13, -kH);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // top-front corner
-  c1 = B(L*0.62, -kH - P.archLift); c2 = B(L*0.28, -hH - P.archLift*0.5);
-  p = B(10, -hH);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // back of the hand
-  c1 = B(0, -hH);    c2 = B(0, -hH + 7); p = B(0, -hH + 12);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // top-back corner
-  p = B(0, -10);                         ctx.lineTo(p.x, p.y);        // heel face
-  c1 = B(0, 0);      c2 = B(4, 0);    p = B(8, 0);
-  ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p.x, p.y);                // heel corner
-  ctx.closePath();
-  ctx.fill();
-
-  // --- fingers: stacked a few px apart so the mass gains depth ------------
-  // `flex` goes mostly into the knuckle angle and only partly into the curl:
-  // put all of it into both and a flexed hand rolls up into a solid hoof.
-  // `fanFlex` staggers the group so the tips separate instead of stacking.
-  const fanFlex = pose.fanFlex || 0;
   P.fingers.forEach((f, i) => {
-    const fx = flex + fanFlex * (i - 1.5);
-    fillDigit(ctx, place(V(P.palmLen, -f.rise)), worldAng(f.ang + fx),
-              f.len, f.w, P.tipW, (P.curl + fx * P.flexToCurl) * m);
+    const base = V(f.at * P.knuckW, knuckY + Math.abs(i - 1.4) * 2.4);
+    const out  = digitOutline(base, f.ang, f.len, f.w, P.tipW,
+                              P.curl * (i < 2 ? -1 : 1));
+    const bend = digitBend(base, f.ang, pose.flex[i]);
+    fillPoly(ctx, out.map(p => q34(p, pose, bend)));
   });
 
-  // --- thumb: shorter, much thicker, angled up off the palm ---------------
   const th = P.thumb;
-  fillDigit(ctx, place(V(P.palmLen * th.at, -th.rise)), worldAng(th.ang),
-            th.len, th.w, th.tipW, th.curl * m);
+  const tBase = V(th.at * P.knuckW, knuckY * th.up);
+  const tOut = digitOutline(tBase, th.ang, th.len, th.w, th.tipW, th.curl);
+  fillPoly(ctx, tOut.map(p => q34(p, pose, digitBend(tBase, th.ang, pose.thumbFlex))));
+}
+
+/**
+ * Where the index fingertip ends up once it has been bent by `flexAng` — used
+ * to plant the fingertip-press pivot on the floor instead of authoring a lift
+ * by eye and hoping the tip lands.
+ */
+function indexTipAZ(flexAng){
+  const f = TOP.fingers[0];
+  const base = V(f.at * TOP.knuckW, -TOP.palmLen + Math.abs(0 - 1.4) * 2.4);
+  const tip  = digitTip(base, f.ang, f.len, -TOP.curl);
+  const bA = -base.y, bB = base.x;
+  const uA = -Math.sin(rad(f.ang)), uB = Math.cos(rad(f.ang));
+  const pa = -tip.y - bA, pb = tip.x - bB;
+  const du = pa*uA + pb*uB;
+  const vA = pa - du*uA;
+  return { a: bA + du*Math.cos(rad(flexAng))*uA + vA, z: -du*Math.sin(rad(flexAng)) };
 }
 
 /* ========================================================================== */
@@ -474,26 +562,47 @@ function tapeStyle(ctx, w){
 function line(ctx, a, b){
   ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
 }
+function polyline(ctx, pts){
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.stroke();
+}
 function arrowHead(ctx, p, deg, size){
   const a = add(p, dir(deg + 152, size)), b = add(p, dir(deg - 152, size));
   ctx.beginPath();
   ctx.moveTo(a.x, a.y); ctx.lineTo(p.x, p.y); ctx.lineTo(b.x, b.y); ctx.stroke();
 }
-function floorLine(ctx, y){
-  ctx.strokeStyle = CHALK; ctx.lineWidth = W_FLOOR; ctx.lineCap = "round";
-  ctx.globalAlpha = 0.45;
-  line(ctx, V(16, y), V(S-16, y));
-  ctx.globalAlpha = 1;
+const angleOf = (a, b) => Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+/** A straight tape arrow from the ghost's position to the far end of travel. */
+function tapeTravel(ctx, from, to, headAtBoth){
+  if (Math.hypot(to.x-from.x, to.y-from.y) < 6) return;
+  tapeStyle(ctx);
+  line(ctx, from, to);
+  arrowHead(ctx, to, angleOf(from, to), 11);
+  if (headAtBoth) arrowHead(ctx, from, angleOf(to, from), 11);
+}
+/** The forearm's own sweep, sampled through the projection so it stays true. */
+function tapeArmSweep(ctx, pose, a0, a1, r){
+  const w = poseAZ(0, 0, pose), away = pose.flip ? 1 : -1;
+  const pts = [];
+  for (let i = 0; i <= 18; i++){
+    const th = rad(lerp(a0, a1, i/18));
+    pts.push(toScreen(w.a + away*r*Math.cos(th), 0, w.z + r*Math.sin(th), pose));
+  }
+  tapeStyle(ctx);
+  polyline(ctx, pts);
+  arrowHead(ctx, pts[0], angleOf(pts[1], pts[0]), 11);
+  arrowHead(ctx, pts[18], angleOf(pts[17], pts[18]), 11);
 }
 
 /* ========================================================================== */
 /* EXERCISES                                                                  */
 /* ========================================================================== */
 
-/** Profile rest pose. Every side exercise starts here and overrides. */
-const flat = over => Object.assign({
-  pivot:"wrist", rot:0, arm:222, anchorX:96, lift:0, slide:0,
-  flex:0, fanFlex:0, mirror:false
+/** 3/4 rest pose. Every side exercise starts here and overrides. */
+const q34Rest = over => Object.assign({
+  rot:0, pivotA:0, flip:false, lift:0, offA:0, offB:0,
+  arm: Q34.armRise, flex:[0,0,0,0], thumbFlex:0
 }, over);
 
 const EXERCISES = [
@@ -508,10 +617,14 @@ const EXERCISES = [
       dy:  R.circles.orbitY * Math.sin(rad(a)),
       spread: 3, pulls:[0,0,0,0]
     };
-    return flat({
-      rot:   R.circles.sideTilt * Math.sin(rad(a)),
-      arm:   222 + R.circles.sideArm * Math.sin(rad(a)),
-      slide: 6 * Math.cos(rad(a))
+    // The hand rides a circle ON THE FLOOR, so the orbit is set in ground
+    // coordinates and the projection turns it into the ellipse you see.
+    return q34Rest({
+      pivotA: TOP.palmLen * 0.5,
+      rot:  R.circles.qSpin * Math.sin(rad(a)),
+      arm:  Q34.armRise + R.circles.qArm * Math.sin(rad(a)),
+      offA: R.circles.qOrbit * Math.cos(rad(a)),
+      offB: R.circles.qOrbit * Math.sin(rad(a))
     });
   },
   tape(ctx, view, t){
@@ -526,122 +639,115 @@ const EXERCISES = [
       ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, TAU); ctx.fill();
       const tan = Math.atan2(R.circles.tapeRY*Math.cos(rad(a)), -R.circles.tapeRX*Math.sin(rad(a)))*180/Math.PI;
       arrowHead(ctx, add(p, dir(tan, 14)), tan, 11);
-    } else {
-      const c = V(158, SIDE.floorY - 4);
-      ctx.setLineDash([9, 8]);
-      ctx.beginPath(); ctx.ellipse(c.x, c.y, 72, 15, 0, 0, TAU);
-      ctx.stroke(); ctx.setLineDash([]);
-      const p = V(c.x + 72*Math.cos(rad(a)), c.y + 15*Math.sin(rad(a)));
-      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, TAU); ctx.fill();
+      return;
     }
+    // A true circle on the floor plane, projected — not a drawn-on ellipse.
+    const base = q34Rest({}), cA = TOP.palmLen * 0.5, r = R.circles.qOrbit;
+    const ring = [];
+    for (let i = 0; i <= 48; i++){
+      const th = rad(i * 360 / 48);
+      ring.push(toScreen(cA + r*Math.cos(th), r*Math.sin(th), 0, base));
+    }
+    ctx.setLineDash([9, 8]);
+    polyline(ctx, ring.concat([ring[0]]));
+    ctx.setLineDash([]);
+    const p = toScreen(cA + r*Math.cos(rad(a)), r*Math.sin(rad(a)), 0, base);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, TAU); ctx.fill();
   },
   note:["Top-down. The print orbits an ellipse; the tape ring is the path it traces.",
         ["orbit", `${R.circles.orbitX} x ${R.circles.orbitY} px`],
         ["print spin", `+/-${R.circles.spin} deg about the wrist`],
         ["tape ellipse", `rx ${R.circles.tapeRX}, ry ${R.circles.tapeRY}, dash 9/8, travelling dot`],
-        ["side variant", `rot +/-${R.circles.sideTilt} deg, forearm 222 +/-${R.circles.sideArm} deg`]]
+        ["3/4 variant", `r ${R.circles.qOrbit} circle ON THE FLOOR, spin +/-${R.circles.qSpin} deg, forearm +/-${R.circles.qArm} deg`]]
 },
 {
   id:"rocks", name:"Palm rocks", dur:R.rocks.dur, views:["side"],
   keys:[0, 0.25, 0.5],
   pose(view, t){
-    const u = pingPong(t);
     // The hand never changes shape: only the forearm travels over the wrist.
-    return flat({ anchorX:R.rocks.anchorX, arm: lerp(R.rocks.armBack, R.rocks.armFwd, u) });
+    return q34Rest({ arm: lerp(R.rocks.armBack, R.rocks.armFwd, pingPong(t)) });
   },
   tape(ctx){
-    // Centred on the WRIST, because that is the forearm's centre of rotation.
-    const o = V(R.rocks.anchorX + 2, SIDE.floorY - SIDE.heelH*0.5), r = R.rocks.arcR;
-    tapeStyle(ctx);
-    ctx.beginPath(); ctx.arc(o.x, o.y, r, rad(R.rocks.armBack), rad(R.rocks.armFwd), false); ctx.stroke();
-    arrowHead(ctx, add(o, dir(R.rocks.armBack, r)), R.rocks.armBack - 90, 11);
-    arrowHead(ctx, add(o, dir(R.rocks.armFwd,  r)), R.rocks.armFwd  + 90, 11);
+    tapeArmSweep(ctx, q34Rest({}), R.rocks.armBack, R.rocks.armFwd, 62);
   },
-  note:["Profile. The silhouette is completely rigid — only the forearm moves.",
-        ["forearm sweep", `${R.rocks.armBack} deg -> ${R.rocks.armFwd} deg (${R.rocks.armFwd-R.rocks.armBack} deg total)`],
-        ["hand", `no deformation at all, planted at x ${R.rocks.anchorX}`],
-        ["tape", `arc r ${R.rocks.arcR} about the wrist, arrowheads both ends`]]
+  note:["3/4. The silhouette is completely rigid — only the forearm angle moves.",
+        ["forearm sweep", `${R.rocks.armBack} deg -> ${R.rocks.armFwd} deg above the floor`],
+        ["hand", `no deformation at all; the ghost is the start of the sweep`],
+        ["tape", `the forearm's own arc, sampled through the projection at r 62`]]
 },
 {
   id:"press", name:"Palm press", dur:R.press.dur, views:["side"],
   keys:[0, 0.3, 0.5],
   pose(view, t){
-    const u = pingPong(t);
     // Pivots at the KNUCKLES, not the wrist: the fingers stay planted and the
     // heel peels up. Rotating about the wrist would lift the fingers instead,
     // which is the opposite exercise.
-    return flat({
-      pivot:"knuckle", anchorX:176,
-      rot: lerp(0, R.press.heelLift, u),
-      arm: 222 + R.press.armFollow * u
-    });
+    const rot = lerp(0, R.press.heelLift, pingPong(t));
+    // The fingers are the anchor: pre-bend them by exactly -rot so the whole-
+    // hand rotation puts them back flat on the floor instead of through it.
+    return q34Rest({ pivotA: TOP.palmLen, rot, flex: [-rot, -rot, -rot, -rot] });
   },
   tape(ctx){
-    tapeStyle(ctx);
-    const x = 90, y0 = SIDE.floorY - 6, len = 42;
-    line(ctx, V(x, y0), V(x, y0 - len));
-    arrowHead(ctx, V(x, y0 - len), -90, 11);
+    const heel = V(0, 0);
+    tapeTravel(ctx, q34(heel, this.pose("side", 0)), q34(heel, this.pose("side", 0.5)));
   },
-  note:["Profile, pivoting at the knuckles. Side only: the movement IS the heel lift.",
-        ["heel lift", `${R.press.heelLift} deg about the knuckle (~${(SIDE.palmLen*Math.sin(rad(R.press.heelLift))).toFixed(0)} px of travel)`],
-        ["forearm follows", `${R.press.armFollow} deg`],
-        ["hand", `rigid — the whole silhouette rotates as one piece`],
-        ["tape", `42 px lift arrow at the heel`]]
+  note:["3/4, pivoting at the knuckles. The ghost is the hand flat on the floor.",
+        ["heel lift", `${R.press.heelLift} deg about the knuckle axis`],
+        ["finger compensation", `flex = -rot, so the fingers stay flat while the palm leaves them`],
+        ["tape", `heel at t=0 -> heel at t=0.5, taken from the poses themselves`]]
 },
 {
   id:"tips", name:"Fingertip press", dur:R.tips.dur, views:["side"],
   keys:[0, 0.3, 0.5],
   pose(view, t){
-    const u = pingPong(t);
-    // The one exercise that must deform: the fingers flex so the palm can arch
-    // clear of the floor while the tips stay planted.
-    return flat({
-      pivot:"tip", anchorX:230,
-      flex:    lerp(R.tips.curlHigh, R.tips.curlLow, u),
-      fanFlex: R.tips.fan,
-      rot:     lerp(R.tips.tiltHigh, R.tips.tiltLow, u),
-      arm:  222
+    // The one exercise that must deform: the fingers bend DOWN out of the
+    // hand's plane, and the hand is then lifted by exactly enough to put the
+    // index fingertip back on the floor.
+    const f = lerp(R.tips.curlHigh, R.tips.curlLow, pingPong(t));
+    const tip = indexTipAZ(f);
+    return q34Rest({
+      flex: [0, 1, 2, 3].map(i => f + R.tips.fan * i),
+      thumbFlex: f * 0.7,
+      pivotA: tip.a,
+      lift:  -tip.z,                 // whatever puts the index tip back at z = 0
+      rot:    lerp(R.tips.tiltHigh, R.tips.tiltLow, pingPong(t))
     });
   },
-  tape(ctx, view, t){
-    const u = pingPong(t);
-    const y = lerp(SIDE.floorY - 104, SIDE.floorY - 92, u);
-    tapeStyle(ctx);
-    line(ctx, V(206, y - 34), V(206, y - 8));
-    arrowHead(ctx, V(206, y - 6), 90, 11);
+  tape(ctx){
+    const kn = V(0, -TOP.palmLen);
+    tapeTravel(ctx, q34(kn, this.pose("side", 0)), q34(kn, this.pose("side", 0.5)));
   },
-  note:["Profile, pivoting at the fingertips. The palm never touches the floor.",
+  note:["3/4, standing on the fingertips. The palm never touches the floor.",
         ["finger flex", `${R.tips.curlHigh} deg -> ${R.tips.curlLow} deg at the knuckle`],
-        ["flex fan", `${R.tips.fan} deg per finger — separates the tips instead of stacking them`],
-        ["palm tilt", `${R.tips.tiltHigh} deg -> ${R.tips.tiltLow} deg, heel high`],
-        ["tip anchor", `x 230 on the floor line`],
-        ["tape", `26 px press arrow over the knuckles`]]
+        ["why not more", `bend harder and the fingers point down the view ray and foreshorten to slivers; the ghost carries the lift instead`],
+        ["flex fan", `${R.tips.fan} deg per finger, so the tips land apart`],
+        ["lift", `computed, not authored: whatever puts the bent index tip back at z = 0`],
+        ["palm tilt", `${R.tips.tiltHigh} deg -> ${R.tips.tiltLow} deg about the tip`],
+        ["tape", `knuckles at t=0 -> knuckles at t=0.5`]]
 },
 {
   id:"reverse", name:"Reverse palm", dur:R.reverse.dur, views:["side"],
   keys:[0, 0.25, 0.5],
   pose(view, t){
-    const u = pingPong(t);
-    // Mirrored: fingers point back toward the body, back of the hand on the
-    // floor. Negative flex lifts the fingertips — that is the palm-up cue.
-    return flat({
-      mirror:true, anchorX:R.reverse.anchorX, pivot:"wrist",
-      arm:  lerp(R.reverse.armBack, R.reverse.armFwd, u),
-      flex: R.reverse.curl
+    // 180 deg about the across-axis: the hand lands palm-up with the fingers
+    // pointing back toward the body. A curl toward the palm now lifts the
+    // fingertips off the floor, which is the palm-up cue.
+    return q34Rest({
+      flip: true,
+      offA: R.reverse.offA,          // flipping points the hand the other way,
+                                     // so the whole pose shifts back into frame
+      arm:  lerp(R.reverse.armBack, R.reverse.armFwd, pingPong(t)),
+      flex: [0,0,0,0].map(() => R.reverse.curl)
     });
   },
   tape(ctx){
-    const y = SIDE.floorY - 126, x0 = 148, x1 = 232;
-    tapeStyle(ctx);
-    line(ctx, V(x0, y), V(x1, y));
-    arrowHead(ctx, V(x0, y), 180, 11);
-    arrowHead(ctx, V(x1, y), 0, 11);
+    tapeArmSweep(ctx, q34Rest({flip:true, offA:R.reverse.offA}), R.reverse.armBack, R.reverse.armFwd, 60);
   },
-  note:["Profile, mirrored. Back of the hand down, fingertips pointing back.",
-        ["forearm sway", `${R.reverse.armBack} deg -> ${R.reverse.armFwd} deg`],
-        ["finger flex", `${R.reverse.curl} deg — NEGATIVE lifts the tips, the palm-up cue`],
-        ["hand", `rigid apart from that constant flex`],
-        ["tape", `84 px double arrow, 126 px above the floor`]]
+  note:["3/4, flipped. Back of the hand down, fingertips pointing back at the body.",
+        ["forearm sway", `${R.reverse.armBack} deg -> ${R.reverse.armFwd} deg above the floor`],
+        ["finger flex", `${R.reverse.curl} deg toward the palm — which is UP here, so the tips rise`],
+        ["framing", `shifted ${R.reverse.offA} along the hand axis to stay in frame`],
+        ["tape", `the forearm's own arc at r 60`]]
 },
 {
   id:"pulls", name:"Finger pulls", dur:R.pulls.dur, views:["top","side"],
@@ -658,29 +764,46 @@ const EXERCISES = [
       pulls: [g.which===0?g.u:0, g.which===0?g.u:0, g.which===1?g.u:0, g.which===1?g.u:0],
       thumbPull: g.which===2 ? g.u : 0
     };
-    // Profile cannot tell index from ring, so it bends the whole group back out
-    // of flat — extension, which is what the stretch actually is.
-    return flat({ flex: g.which === 2 ? 0 : -R.pulls.sideBack * g.u });
+    // In 3/4 the group bends UP out of the hand's plane — extension, which is
+    // what the stretch actually is, and which a top-down view cannot show.
+    const b = -R.pulls.qBack * g.u;
+    return q34Rest({
+      flex: [g.which===0?b:0, g.which===0?b:0, g.which===1?b:0, g.which===1?b:0],
+      thumbFlex: g.which===2 ? b : 0
+    });
   },
   tape(ctx, view, t){
     const g = this.group(t);
-    tapeStyle(ctx);
     if (view === "top"){
+      tapeStyle(ctx);
       const x = g.which===0 ? S/2 - 26 : g.which===1 ? S/2 + 26 : S/2 - 64;
       const y = TOP.wristY - TOP.palmLen - 56;
       line(ctx, V(x, y), V(x, y + 32));
       arrowHead(ctx, V(x, y + 32), 90, 11);    // pull back toward the wrist
       return;
     }
-    const y = SIDE.floorY - 84;
-    line(ctx, V(228, y), V(180, y));
-    arrowHead(ctx, V(180, y), 180, 11);
+    // Follow whichever digit is working, from flat to fully pulled back.
+    const idx = g.which === 0 ? 1 : g.which === 1 ? 2 : -1;
+    const flatPose = q34Rest({});
+    const fullPose = this.pose("side", (g.which + 0.5) / 3);
+    let local, base, ang;
+    if (idx < 0){
+      const th = TOP.thumb;
+      base = V(th.at*TOP.knuckW, -TOP.palmLen*th.up); ang = th.ang;
+      local = digitTip(base, th.ang, th.len, th.curl);
+    } else {
+      const f = TOP.fingers[idx];
+      base = V(f.at*TOP.knuckW, -TOP.palmLen + Math.abs(idx-1.4)*2.4); ang = f.ang;
+      local = digitTip(base, f.ang, f.len, TOP.curl * (idx < 2 ? -1 : 1));
+    }
+    const flexNow = idx < 0 ? fullPose.thumbFlex : fullPose.flex[idx];
+    tapeTravel(ctx, q34(local, flatPose), q34(local, fullPose, digitBend(base, ang, flexNow)));
   },
   note:["Top-down. Groups take turns: index+middle, then ring+pinky, then the thumb.",
         ["cycle", `3 groups x ${(R.pulls.dur/3).toFixed(2)} s, ping-pong within each`],
         ["pull back", `${R.pulls.pullBack} deg of extra curl away from the palm`],
         ["foreshorten", `x${(1-R.pulls.shorten).toFixed(2)} of resting length`],
-        ["side variant", `the whole group flexes to -${R.pulls.sideBack} deg = extension`]]
+        ["3/4 variant", `the group bends -${R.pulls.qBack} deg UP out of the hand's plane`]]
 }
 ];
 
@@ -689,9 +812,16 @@ const EXERCISES = [
 /* ========================================================================== */
 function drawExercise(ctx, ex, t, view, showTape){
   ctx.clearRect(0, 0, S, S);
-  if (view === "side") floorLine(ctx, SIDE.floorY);
-  const pose = ex.pose(view, t);
-  if (view === "side") sideHand(ctx, pose); else topHand(ctx, pose);
+  if (view === "top"){
+    topHand(ctx, ex.pose("top", t));
+  } else {
+    // Ghost framing: the start of the travel stays on screen at 20%, so a
+    // still frame still says which way the hand is going.
+    ctx.globalAlpha = Q34.ghost;
+    quarterHand(ctx, ex.pose("side", 0));
+    ctx.globalAlpha = 1;
+    quarterHand(ctx, ex.pose("side", t));
+  }
   if (showTape) ex.tape(ctx, view, t);       // ON TOP: the fill would hide it
 }
 
@@ -718,17 +848,16 @@ const RULER_SIZES = [320, 160, 80];
 function buildRuler(){
   const host = document.getElementById("ruler");
   host.innerHTML = "";
-  const restTop  = { rot:0, dx:0, dy:0, spread:2, pulls:[0,0,0,0] };
-  const restSide = flat({ anchorX:100 });
-  for (const which of ["top", "side"]){
+  const restTop = { rot:0, dx:0, dy:0, spread:2, pulls:[0,0,0,0] };
+  const rest34  = q34Rest({});
+  for (const which of ["top", "q34"]){
     for (const px of RULER_SIZES){
       const fig = document.createElement("figure");
       const {c, ctx} = makeCanvas(px, "s" + px);
       ctx.clearRect(0, 0, S, S);
-      if (which === "side"){ floorLine(ctx, SIDE.floorY); sideHand(ctx, restSide); }
-      else                 { topHand(ctx, restTop); }
+      if (which === "top") topHand(ctx, restTop); else quarterHand(ctx, rest34);
       const cap = document.createElement("figcaption");
-      cap.textContent = (which === "top" ? "print " : "profile ") + px + " px";
+      cap.textContent = (which === "top" ? "print " : "3/4 ") + px + " px";
       fig.append(c, cap);
       host.append(fig);
     }
@@ -821,7 +950,8 @@ function renderNotes(){
   lede.textContent =
     "All numbers are in a 300 x 300 logical box, y down, angles in degrees from " +
     "+x toward +y. Widths are HALF-widths of a filled shape, not stroke weights — " +
-    "nothing here is stroked except the floor line and the tape. Scale linearly.";
+    "nothing here is stroked except the tape. There is ONE set of hand anatomy; " +
+    "the 3/4 view is that same anatomy through the camera below.";
   el.append(head, lede);
 
   const prim = document.createElement("pre");
@@ -831,11 +961,11 @@ function renderNotes(){
     pad("fill", CHALK + " solid on " + FLOOR + " — no outline, no gradient") +
     pad("digit", "quadratic Bezier spine: half the length straight, then bending by `curl`") +
     pad("digit width", "lerp(base -> base x tipW) along s, domed from s = " + CAP_FROM) +
-    pad("digit tesselation", DIGIT_STEPS + " steps — smooth well past 320 px") +
+    pad("digit tesselation", DIGIT_STEPS + " steps; palm flattened to 12 per cubic for the 3/4") +
     pad("compositing", "each part is its OWN fill — one combined path CANCELS where windings oppose") +
-    pad("stroke: floor line", W_FLOOR + " px @ 45% alpha") +
     pad("stroke: tape", W_TAPE + " px, drawn OVER the fill") +
-    "\n<b>TOP-DOWN PRINT</b>  (wrist line at origin, fingers toward -y)\n" +
+    pad("ghost", "the t = 0 pose at " + Math.round(Q34.ghost*100) + "% opacity, 3/4 views only") +
+    "\n<b>HAND ANATOMY</b>  (wrist line at origin, fingers toward -y, x across)\n" +
     pad("palm", TOP.palmLen + " long, " + TOP.knuckW + " across the knuckles, " + TOP.wristW + " at the wrist") +
     pad("palm shape", "4 cubics; knuckle edge bows " + TOP.knuckBow + " px out, thenar " + TOP.thenar + " px, hypothenar " + TOP.hypo + " px") +
     TOP.fingers.map((f, i) => pad(NAMES[i],
@@ -843,20 +973,20 @@ function renderNotes(){
     pad("fingertip", "x" + TOP.tipW + " of the base half-width; resting curl " + TOP.curl + " deg") +
     pad("thumb", "len " + TOP.thumb.len + ", half-width " + TOP.thumb.w + " (the THICKEST digit), " +
         (270 - TOP.thumb.ang) + " deg off the palm axis") +
+    "\n<b>TOP-DOWN PROJECTION</b>\n" +
     pad("forearm", "half-width " + TOP.armW[0] + " -> " + TOP.armW[1] + " over " + TOP.armRamp + " px, then off-canvas") +
     pad("wrist line", "y = " + TOP.wristY) +
-    "\n<b>PROFILE PRINT</b>  (heel at origin, floor along +x, body toward -y)\n" +
-    pad("palm", SIDE.palmLen + " long, " + SIDE.heelH + " deep at the heel, " + SIDE.knuckH + " at the knuckles") +
-    pad("palm shape", "flat floor edge; the back of the hand domes " + SIDE.archLift + " px above the straight line") +
-    SIDE.fingers.map((f, i) => pad(NAMES[i],
-      "len " + f.len + ", half-width " + f.w + ", rise " + f.rise + ", angle " + f.ang + " deg")).join("") +
-    pad("why the rise", "stacking them " + (SIDE.fingers[3].rise - SIDE.fingers[0].rise) +
-        " px gives the mass depth; filled shapes MERGE, they do not fork") +
-    pad("fingertip", "x" + SIDE.tipW + " of the base half-width; resting curl " + SIDE.curl + " deg") +
-    pad("thumb", "len " + SIDE.thumb.len + ", half-width " + SIDE.thumb.w + ", rise " + SIDE.thumb.rise +
-        ", angle " + SIDE.thumb.ang + " deg (up off the palm)") +
-    pad("forearm", "half-width " + SIDE.armW[0] + " -> " + SIDE.armW[1] + " over " + SIDE.armRamp + " px, then off-canvas") +
-    pad("floor line", "y = " + SIDE.floorY);
+    "\n<b>3/4 PROJECTION</b>  (orthographic axonometric)\n" +
+    pad("camera", "elevation " + Q34.elev + " deg, hand azimuth " + Q34.azim + " deg, scale x" + Q34.scale) +
+    pad("per unit along", "(" + BAS.eA.x.toFixed(3) + ", " + BAS.eA.y.toFixed(3) + ") px") +
+    pad("per unit across", "(" + BAS.eB.x.toFixed(3) + ", " + BAS.eB.y.toFixed(3) + ") px") +
+    pad("per unit height", "(" + BAS.eH.x.toFixed(3) + ", " + BAS.eH.y.toFixed(3) + ") px") +
+    pad("wrist lands at", "(" + Q34.originX + ", " + Q34.originY + ")") +
+    pad("forearm width", "x" + Q34.armW + " of the palm's projected wrist width = " +
+        (TOP.wristW * Q34.armW * EB_LEN).toFixed(1) + " px, tapering to x" + Q34.armTaper + " at the elbow") +
+    pad("forearm width axis", "perpendicular to its SCREEN axis — a cylinder, not a ribbon") +
+    pad("forearm rest", Q34.armRise + " deg above the floor, " + Q34.armLen + " long so it leaves the card") +
+    pad("why azim " + Q34.azim, "0 deg is the pure profile that collapses; 90 deg is the top-down squashed");
   el.append(prim);
 
   for (const ex of EXERCISES){
@@ -872,9 +1002,11 @@ function renderNotes(){
   const tail = document.createElement("pre");
   tail.innerHTML =
     "<b>MOTION</b>\n" +
-    pad("rule", "the silhouette is rigid — one rotation about one joint, then a translate") +
-    pad("exception", "fingertip press and finger pulls flex the digits; nothing else does") +
-    pad("flex split", "a flex is " + SIDE.flexToCurl + " as strong at the second joint as at the knuckle") +
+    pad("rule", "the silhouette is rigid — one rotation about one joint, then a lift") +
+    pad("exception", "fingertip press and finger pulls bend digits out of the hand's plane") +
+    pad("rot", "about the across-axis at `pivotA`; positive lifts everything behind it") +
+    pad("flex", "hinges a digit about an axis perpendicular to ITSELF, not to the hand") +
+    pad("flip", "180 deg about the across-axis: palm up, fingers pointing back") +
     pad("ping-pong", "u = easeInOut(1 - |2t - 1|)  — every press, rock and pull uses this") +
     pad("orbit", "a = 360 deg x t  — wrist circles only, continuous, never reverses mid-cycle") +
     pad("easing", "easeInOut(t) = t<0.5 ? 2t^2 : 1 - (-2t+2)^2 / 2");
